@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { CapSonar } from './CapSonar.js';
 
-export { Add };
+export { CapSonar };

@@ -9,7 +9,7 @@ import { Field, SmartContract, state, State, method, Poseidon, Character } from 
  *
  * This file is safe to delete and replace with your own contract.
  */
-export class Add extends SmartContract {
+export class CapSonar extends SmartContract {
   @state(Field) P1x = State<Field>();
   @state(Field) P1y = State<Field>();
   @state(Field) P2x = State<Field>();
@@ -29,7 +29,7 @@ export class Add extends SmartContract {
     }
   }
 
-  @method update(direction: Character, salt: Field, player:Field) {
+  @method update_pos(direction: Character, salt: Field, player:Field) {
     var dx = 0;
     var dy = 0;
     if (direction.equals(Character.fromAscii('N'))) {
@@ -64,4 +64,13 @@ export class Add extends SmartContract {
       this.P2y.set(new_P2y);
     }
   }
+
+  @method get_pos(player: Field) {
+      if (player.equals(Field.fromNumber(1))) {
+          return [this.P1x.get(), this.P1y.get()];
+      } else {
+          return [this.P2x.get(), this.P2y.get()];
+      }
+  }
+
 }
