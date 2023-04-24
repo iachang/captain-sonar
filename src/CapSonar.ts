@@ -14,9 +14,16 @@ export class CapSonar extends SmartContract {
   @state(Field) P1y = State<Field>();
   @state(Field) P2x = State<Field>();
   @state(Field) P2y = State<Field>();
+  @state(Field) P1health = State<Field>();
+  @state(Field) P2health = State<Field>();
 
   init() {
     super.init();
+  }
+
+  @method init_health(salt: Field, health: Field) {
+    this.P1health.set(Poseidon.hash([salt, health]));
+    this.P2health.set(Poseidon.hash([salt, health]));
   }
 
   @method init_position(salt:Field, player:Field, x: Field, y: Field) {
@@ -73,4 +80,51 @@ export class CapSonar extends SmartContract {
       }
   }
 
+  @method get_health(player: Field) {
+      if (player.equals(Field.fromNumber(1))) {
+          return this.P1health.get();
+      } else {
+          return this.P2health.get();
+      }
+  }
+
+  /**
+   * decrement health of player by 2 if that players position is equal to the other players position is x and y
+   * decrement health of player by 1 if that players position is within 1 manhattan of the other players position is x and y
+  **/
+  @method attack_player(salt: Field, player: Field, x: Field, y: Field) {
+    if (player.equals(Field.fromNumber(1))) {
+      const curr_P2health = this.P2health.get();
+      this.P2health.assertEquals(curr_P2health);
+      if (this.P2x.get().equals(x) && this.P2y.get().equals(y)) {
+        const new_P2health = curr_P2health.sub(2);
+        this.P2health.set(new_P2health);
+        return 2;
+      } else if ((this.P2x.get().equals(x.add(1)) && this.P2y.get().equals(y)) || 
+        (this.P2x.get().equals(x.sub(1)) && this.P2y.get().equals(y)) || 
+        (this.P2x.get().equals(x) && this.P2y.get().equals(y.add(1))) || 
+        (this.P2x.get().equals(x) && this.P2y.get().equals(y.sub(1)))) {
+        const new_P2health = curr_P2health.sub(1);
+        this.P2health.set(new_P2health);
+        return 1;
+      }
+    } else {
+      const curr_P1health = this.P1health.get();
+      this.P1health.assertEquals(curr_P1health);
+      if (this.P1x.get().equals(x) && this.P1y.get().equals(y)) {
+        const new_P1health = curr_P1health.sub(2);
+        this.P1health.set(new_P1health);
+        return 2;
+      } else if ((this.P1x.get().equals(x.add(1)) && this.P1y.get().equals(y)) || 
+        (this.P1x.get().equals(x.sub(1)) && this.P1y.get().equals(y)) || 
+        (this.P1x.get().equals(x) && this.P1y.get().equals(y.add(1))) || 
+        (this.P1x.get().equals(x) && this.P1y.get().equals(y.sub(1)))) {
+        const new_P1health = curr_P1health.sub(1);
+        this.P1health.set(new_P1health);
+        return 1;
+      }
+    }
+  }
+
+  //check if get_pos and get_health are working, through the salt
 }
