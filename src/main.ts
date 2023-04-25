@@ -5,6 +5,8 @@ import {
   Field,
   Mina,
   PrivateKey,
+  Character,
+  AccountUpdate,
 } from 'snarkyjs';
 
 await isReady;
@@ -28,17 +30,19 @@ const salt = Field.random();
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
 
-const zkAppInstance = new CapSonar(); //confused why there is one address but no args in constructor
+const zkAppInstance = new CapSonar(zkAppAddress); //confused why there is one address but no args in constructor
 const deployTxn = await Mina.transaction(deployerAccount, () => {
+  AccountUpdate.fundNewAccount(deployerAccount);
   zkAppInstance.deploy();
-  zkAppInstance.initState(salt, Field(750));
+  zkAppInstance.init_position(salt, Field(750), Field(0), Field(0));
 });
 await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
 
-
+// in the while loop, we want P2 random policy
+/*
 while (true) {
-  // get input from user
+  // get input from user terminal
   const input = prompt('Enter a direction (N, S, E, W): ');
   if (input === null) {
     break;
@@ -50,22 +54,29 @@ while (true) {
     continue;
   }
 
-}
+  // query policy
 
+  // change the update of the game using queryPosition
+  
+  // move
+
+  // make a fake policy for player 2 in index.ts
+
+}*/
 
 // get the initial state of IncrementSecret after deployment
-const num0 = zkAppInstance.x.get();
+const num0 = zkAppInstance.P1x.get();
 console.log('state after init:', num0.toString());
 
 // ----------------------------------------------------
 
 const txn1 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.incrementSecret(salt, Field(750));
+  zkAppInstance.update_pos(Character.fromString('E'), salt, Field(1));
 });
 await txn1.prove();
 await txn1.sign([senderKey]).send();
 
-const num1 = zkAppInstance.x.get();
+const num1 = zkAppInstance.P1x.get();
 console.log('state after txn1:', num1.toString());
 
 // ----------------------------------------------------
