@@ -71,13 +71,15 @@ console.log('state after init:', num0.toString());
 // ----------------------------------------------------
 
 const txn1 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_pos(Character.fromString('E'), salt, Field(1));
+  zkAppInstance.update_p1_pos(Field(1), salt);
 });
+
 await txn1.prove();
 await txn1.sign([senderKey]).send();
 
 const num1 = zkAppInstance.P1x.get();
-console.log('state after txn1:', num1.toString());
+const num2 = zkAppInstance.P1y.get();
+console.log('(x, y) after txn1:', num1.toString(), num2.toString());
 
 // ----------------------------------------------------
 
