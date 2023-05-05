@@ -35,22 +35,22 @@ export class CapSonar extends SmartContract {
     super.init();
   }
 
-  @method init_health(salt: Field, player:Field, health: Field) {
-    if (player.equals(Field(1))) {
-      this.P1health.set(Poseidon.hash([salt, health]));
-    } else {
-      this.P2health.set(Poseidon.hash([salt, health]));
-    }
+  @method p1_init_health(salt: Field, health: Field) {
+    this.P1health.set(Poseidon.hash([salt, health]));
   }
 
-  @method init_position(salt:Field, player:Field, x: Field, y: Field) {
-    if (player.equals(Field(1))) {
-      this.P1x.set(Poseidon.hash([ salt, x ]));
-      this.P1y.set(Poseidon.hash([ salt, y ]));
-    } else {
-      this.P2x.set(Poseidon.hash([salt, x]));
-      this.P2y.set(Poseidon.hash([salt, y]));
-    }
+  @method p2_init_health(salt: Field, health: Field) {
+    this.P2health.set(Poseidon.hash([salt, health]));
+  }
+
+  @method p2_init_position(salt:Field, x: Field, y: Field) {
+    this.P2x.set(Poseidon.hash([salt, x]));
+    this.P2y.set(Poseidon.hash([salt, y]));
+  }
+
+  @method p1_init_position(salt:Field, x: Field, y: Field) {
+    this.P1x.set(Poseidon.hash([ salt, x ]));
+    this.P1y.set(Poseidon.hash([ salt, y ]));
   }
 
   @method init_board(size: Field) {
@@ -121,13 +121,13 @@ export class CapSonar extends SmartContract {
     this.P2y.set(Poseidon.hash([salt, yc.add(ymove)]));
   }
 
-  @method get_health(player: Field) {
-      if (player.equals(Field(1))) {
-          return this.P1health.get();
-      } else {
-          return this.P2health.get();
-      }
-  }
+  // @method get_health(player: Field) {
+  //     if (player.equals(Field(1))) {
+  //         return this.P1health.get();
+  //     } else {
+  //         return this.P2health.get();
+  //     }
+  // }
 
   //check the x and y is within the board size
   @method check_valid_pos(x: Field, y:Field) {
@@ -221,42 +221,134 @@ export class CapSonar extends SmartContract {
   }
 
   /**
-   * The player submerges into the water and can move 2 steps in the next turn
+   * The player submerges into the water and can move 3 steps in the next turn
    * This special power is activated after 15 turns
    */
-  @method sp_submerge(curr_x: Field, curr_y: Field, step1:Character, step2:Character, salt: Field, player: Field) {
-    let dx = 0;
-    let dy = 0;
-    // if (direction.equals(Character.fromString('N'))) {
-    //   dy = 1;
-    // } else if (direction.equals(Character.fromString('S'))) {
-    //   dy = -1;
-    // } else if (direction.equals(Character.fromString('E'))) {
-    //   dx = 1;
-    // } else if (direction.equals(Character.fromString('W'))) {
-    //   dx = -1;
-    // } else {
-    //   throw new Error('Invalid direction');
-    // }
-    if (player.equals(Field(1))) {
-      const curr_P1x = this.P1x.get();
-      this.P1x.assertEquals(curr_P1x);
-      Poseidon.hash([ salt, curr_x ]).assertEquals(curr_P1x);
-      this.P1x.set(Poseidon.hash([ salt, curr_P1x.add(Field(dx)) ]));
-      const curr_P1y = this.P1y.get();
-      this.P1y.assertEquals(curr_P1y);
-      Poseidon.hash([ salt, curr_y ]).assertEquals(curr_P1y);
-      this.P1y.set(Poseidon.hash([ salt, curr_P1y.add(Field(dy)) ]));
-    } else {
-      const curr_P2x = this.P2x.get();
-      this.P2x.assertEquals(curr_P2x);
-      Poseidon.hash([ salt, curr_x ]).assertEquals(curr_P2x);
-      this.P2x.set(Poseidon.hash([ salt, curr_P2x.add(Field(dx)) ]));
-      const curr_P2y = this.P2y.get();
-      this.P2y.assertEquals(curr_P2y);
-      Poseidon.hash([ salt, curr_y ]).assertEquals(curr_P2y);
-      this.P2y.set(Poseidon.hash([ salt, curr_P2y.add(Field(dy)) ]));
-    }
+  @method p1_submerge(curr_x: Field, curr_y: Field, step1:Field, step2:Field, step3:Field, salt: Field) {
+    const d1 = step1.sub(Field(1));
+    const d2 = step1.sub(Field(2));
+    const d3 = step1.sub(Field(3));
+    const d4 = step1.sub(Field(4));
 
+    const step1x = Circuit.switch(
+      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+
+    const step1y = Circuit.switch(
+      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+
+    const d12 = step2.sub(Field(1));
+    const d22 = step2.sub(Field(2));
+    const d32 = step2.sub(Field(3));
+    const d42 = step2.sub(Field(4));
+
+    const step2x = Circuit.switch(
+      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+
+    const step2y = Circuit.switch(
+      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+    const d13 = step3.sub(Field(1));
+    const d23 = step3.sub(Field(2));
+    const d33 = step3.sub(Field(3));
+    const d43 = step3.sub(Field(4));
+
+    const step3x = Circuit.switch(
+      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+
+    const step3y = Circuit.switch(
+      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+
+    const submerge = Circuit.if(this.step.get().sub(this.P1_submerge_step.get()).greaterThanOrEqual(15), Field(1), Field(0));
+    this.P1_submerge_step.set(Circuit.if(submerge.equals(Field(1)), this.step.get(), this.P1_submerge_step.get()));
+    const dx = Circuit.if(submerge.equals(Field(1)), step1x.add(step2x).add(step3x), Field(0));
+    const dy = Circuit.if(submerge.equals(Field(1)), step1y.add(step2y).add(step3y), Field(0));
+    const curr_P1x = this.P1x.get();
+    this.P1x.assertEquals(curr_P1x);
+    Poseidon.hash([ salt, curr_x ]).assertEquals(curr_P1x);
+    this.P1x.set(Poseidon.hash([ salt, curr_P1x.add(Field(dx)) ]));
+    const curr_P1y = this.P1y.get();
+    this.P1y.assertEquals(curr_P1y);
+    Poseidon.hash([ salt, curr_y ]).assertEquals(curr_P1y);
+    this.P1y.set(Poseidon.hash([ salt, curr_P1y.add(Field(dy)) ]));    
+  }
+
+  @method p2_submerge(curr_x: Field, curr_y: Field, step1:Field, step2:Field, step3:Field, salt: Field) {
+    const d1 = step1.sub(Field(1));
+    const d2 = step1.sub(Field(2));
+    const d3 = step1.sub(Field(3));
+    const d4 = step1.sub(Field(4));
+
+    const step1x = Circuit.switch(
+      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+
+    const step1y = Circuit.switch(
+      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+
+    const d12 = step2.sub(Field(1));
+    const d22 = step2.sub(Field(2));
+    const d32 = step2.sub(Field(3));
+    const d42 = step2.sub(Field(4));
+
+    const step2x = Circuit.switch(
+      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+
+    const step2y = Circuit.switch(
+      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+    const d13 = step3.sub(Field(1));
+    const d23 = step3.sub(Field(2));
+    const d33 = step3.sub(Field(3));
+    const d43 = step3.sub(Field(4));
+
+    const step3x = Circuit.switch(
+      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+      Field,
+      [Field(0), Field(1), Field(0), Field(-1)]
+    );
+    const step3y = Circuit.switch(
+      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+      Field,
+      [Field(1), Field(0), Field(-1), Field(0)]
+    );
+    const submerge = Circuit.if(this.step.get().sub(this.P2_submerge_step.get()).greaterThanOrEqual(15), Field(1), Field(0));
+    this.P2_submerge_step.set(Circuit.if(submerge.equals(Field(1)), this.step.get(), this.P2_submerge_step.get()));
+    const dx = Circuit.if(submerge.equals(Field(1)), step1x.add(step2x).add(step3x), Field(0));
+    const dy = Circuit.if(submerge.equals(Field(1)), step1y.add(step2y).add(step3y), Field(0));
+    const curr_P2x = this.P2x.get();
+    this.P2x.assertEquals(curr_P2x);
+    Poseidon.hash([ salt, curr_x ]).assertEquals(curr_P2x);
+    this.P2x.set(Poseidon.hash([ salt, curr_P2x.add(Field(dx)) ]));
+    const curr_P2y = this.P2y.get();
+    this.P2y.assertEquals(curr_P2y);
+    Poseidon.hash([ salt, curr_y ]).assertEquals(curr_P2y);
+    this.P2y.set(Poseidon.hash([ salt, curr_P2y.add(Field(dy)) ]));
   }
 }

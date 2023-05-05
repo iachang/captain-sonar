@@ -34,7 +34,8 @@ const zkAppInstance = new CapSonar(zkAppAddress); //confused why there is one ad
 const deployTxn = await Mina.transaction(deployerAccount, () => {
   AccountUpdate.fundNewAccount(deployerAccount);
   zkAppInstance.deploy();
-  zkAppInstance.init_position(salt, Field(750), Field(0), Field(0));
+  zkAppInstance.p1_init_position(salt, Field(0), Field(0));
+  zkAppInstance.p2_init_position(salt, Field(0), Field(0));
 });
 await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
@@ -71,7 +72,7 @@ console.log('state after init:', num0.toString());
 // ----------------------------------------------------
 
 const txn1 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(1), salt);
+  zkAppInstance.update_p1_pos(Field(1),Field(0),Field(0), salt);
 });
 
 await txn1.prove();
