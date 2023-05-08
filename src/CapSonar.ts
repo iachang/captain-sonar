@@ -83,7 +83,7 @@ export class CapSonar extends SmartContract {
    */
   @method indiv_to_comb(first: Field, second:Field) {
     const two16 = Field(2).square().square().square().square();
-    return second.mul(two16).add(first);
+    return first.mul(two16).add(second);
   }
   /**
    * @param comb number to split into two 16 byte numbers
