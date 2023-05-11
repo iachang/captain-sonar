@@ -82,31 +82,6 @@ const txn0d = await Mina.transaction(senderAccount, () => {
 await txn0d.prove();
 await txn0d.sign([senderKey]).send();
 
-// in the while loop, we want P2 random policy
-/*
-while (true) {
-  // get input from user terminal
-  const input = prompt('Enter a direction (N, S, E, W): ');
-  if (input === null) {
-    break;
-  } else if (input.length !== 1) {
-    console.log('Invalid input');
-    continue;
-  } else if (!['N', 'S', 'E', 'W'].includes(input)) {
-    console.log('Invalid input');
-    continue;
-  }
-
-  // query policy
-
-  // change the update of the game using queryPosition
-  
-  // move
-
-  // make a fake policy for player 2 in index.ts
-
-}*/
-
 // get the initial state of IncrementSecret after deployment
 const num0 = zkAppInstance.P1_pos.get();
 console.log('(x, y) after init:', num0.toString());
