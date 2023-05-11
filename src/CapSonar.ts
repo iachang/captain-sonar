@@ -9,6 +9,7 @@ import {
   Bool,
   Circuit,
   UInt64,
+  UInt32,
 } from 'snarkyjs';
 
 export class CapSonar extends SmartContract {
@@ -50,30 +51,30 @@ export class CapSonar extends SmartContract {
     super.init();
   }
 
-  @method init_health(health: Field) {
-    this.P1P2health.set(this.indiv_to_comb(health, health));
+  @method init_health(health: Field, two16: Field) {
+    this.P1P2health.set(this.indiv_to_comb(health, health, two16));
   }
 
 
-  @method p2_init_position(salt: Field, x: Field, y: Field) {
-    this.check_valid_pos(x, y);
-    const combined_input = this.indiv_to_comb(x, y);
+  @method p2_init_position(salt: Field, x: Field, y: Field, two16: Field) {
+    // this.check_valid_pos(x, y);
+    const combined_input = this.indiv_to_comb(x, y, two16);
     this.P2_pos.set(Poseidon.hash([salt, combined_input]));
 
   }
 
-  @method p1_init_position(salt: Field, x: Field, y: Field) {
-    this.check_valid_pos(x, y);
-    const combined_input = this.indiv_to_comb(x, y);
+  @method p1_init_position(salt: Field, x: Field, y: Field, two16: Field) {
+    // this.check_valid_pos(x, y);
+    const combined_input = this.indiv_to_comb(x, y, two16);
     this.P1_pos.set(Poseidon.hash([salt, combined_input]));
   }
 
-  @method init_board(size: Field) {
-    this.step_size.set(this.indiv_to_comb(Field(0), size));
-    this.P1P2_submerge_step.set(this.indiv_to_comb(Field(0), Field(0)));
-    this.P1P2attacked.set(this.indiv_to_comb(Field(0), Field(0)));
-    this.P1attackedatXY.set(this.indiv_to_comb(Field(0), Field(0)));
-    this.P2attackedatXY.set(this.indiv_to_comb(Field(0), Field(0)));
+  @method init_board(size: Field, two16: Field) {
+    this.step_size.set(size);
+    this.P1P2_submerge_step.set(Field(0));
+    this.P1P2attacked.set(Field(0));
+    this.P1attackedatXY.set(Field(0));
+    this.P2attackedatXY.set(Field(0));
   }
 
   /**
@@ -81,24 +82,22 @@ export class CapSonar extends SmartContract {
    * @param second number to store in second 16 bytes
    * @returns first * 2^16 + y
    */
-  @method indiv_to_comb(first: Field, second:Field) {
-    const two16 = Field(2).square().square().square().square();
+  @method indiv_to_comb(first: Field, second:Field, two16:Field): Field {
     return first.mul(two16).add(second);
   }
   /**
    * @param comb number to split into two 16 byte numbers
    * @returns [first, second] where first is the first 16 bytes of comb and second is the second 16 bytes of comb
    */
-  @method comb_to_indiv(comb:Field, index: Field) {
-    const combInt = UInt64.from(comb)
-    const modnum = UInt64.from(Field(2).square().square().square().square())
+  @method comb_to_indiv(comb:Field, index: Field, two16:Field): Field {
+    const combInt = UInt32.from(comb)
+    const modnum = UInt32.from(two16);
     const divmod = combInt.divMod(modnum);
     return Circuit.if(index.isZero(), divmod.quotient.toFields()[0], divmod.rest.toFields()[0]);
   }
 
-  @method update_p1_pos(direction: Field, xc: Field, yc: Field, salt: Field) {
+  @method update_p1_pos(direction: Field, xc: Field, yc: Field, salt: Field, two16: Field) {
     // N, E, S, W
-
     const d1 = direction.sub(Field(1));
     const d2 = direction.sub(Field(2));
     const d3 = direction.sub(Field(3));
@@ -116,21 +115,18 @@ export class CapSonar extends SmartContract {
       [Field(1), Field(0), Field(-1), Field(0)]
     );
     
-    this.check_valid_pos(xc.add(xmove), yc.add(ymove));
-
-    const combined_input = this.indiv_to_comb(xc, yc);
+    this.check_valid_pos(xc.add(xmove), yc.add(ymove), two16);
+    const combined_input = this.indiv_to_comb(xc, yc, two16);
     const curr_P1 = this.P1_pos.get();
     this.P1_pos.assertEquals(curr_P1);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
-
-    const combined_mod = this.indiv_to_comb(xc.add(xmove), yc.add(ymove));
+    const combined_mod = this.indiv_to_comb(xc.add(xmove), yc.add(ymove), two16);
     this.P1_pos.set(Poseidon.hash([salt, combined_mod]));
   }
 
-  @method update_p2_pos(direction: Field, xc: Field, yc: Field, salt: Field) {
+  @method update_p2_pos(direction: Field, xc: Field, yc: Field, salt: Field, two16: Field) {
     // N, E, S, W
     // have to make sure we don't leave the board with size
-
     const d1 = direction.sub(Field(1));
     const d2 = direction.sub(Field(2));
     const d3 = direction.sub(Field(3));
@@ -148,24 +144,24 @@ export class CapSonar extends SmartContract {
       [Field(1), Field(0), Field(-1), Field(0)]
     );
     
-    this.check_valid_pos(xc.add(xmove), yc.add(ymove));
-    const combined_input = this.indiv_to_comb(xc, yc);
-
+    this.check_valid_pos(xc.add(xmove), yc.add(ymove), two16);
+    const combined_input = this.indiv_to_comb(xc, yc, two16);
+    // console.log("cur_pos_check", xc, yc, combined_input);
     const curr_P2 = this.P2_pos.get();
     this.P2_pos.assertEquals(curr_P2);
+    // console.log("Poseidon.hash([salt, combined_input]).assertEquals(curr_P1)", Poseidon.hash([salt, combined_input]), this.P2_pos.get());
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
-    
-    const combined_mod = this.indiv_to_comb(xc.add(xmove), yc.add(ymove));
+    const combined_mod = this.indiv_to_comb(xc.add(xmove), yc.add(ymove), two16);
+    // console.log("next_pos_set", xc.add(xmove), yc.add(ymove), combined_mod, Poseidon.hash([salt, combined_mod]));
     this.P2_pos.set(Poseidon.hash([salt, combined_mod]));
   }
 
-
   //check the x and y is within the board size
-  @method check_valid_pos(x: Field, y: Field) {
+  @method check_valid_pos(x: Field, y: Field, two16:Field) {
     // you need to input the raw x and y fields
     const step_size = this.step_size.get();
     this.step_size.assertEquals(step_size);
-    const size = this.comb_to_indiv(this.step_size.get(), Field(1));
+    const size = this.comb_to_indiv(step_size, Field(1), two16);
     x.assertLessThan(size);
     y.assertLessThan(size);
     x.assertGreaterThanOrEqual(Field(0));
@@ -173,36 +169,45 @@ export class CapSonar extends SmartContract {
   }
 
   //wait exactly 5 steps to attack again
-  @method p1_attack_p2(x: Field, y: Field) {
+  @method p1_attack_p2(x: Field, y: Field, two16:Field) {
     const step_size = this.step_size.get();
     this.step_size.assertEquals(step_size);
-    const step = this.comb_to_indiv(this.step_size.get(), Field(0));
+    const step = this.comb_to_indiv(this.step_size.get(), Field(0), two16);
     const attack = Circuit.if(
-      UInt64.from(step).mod(5).equals(UInt64.from(0)),
+      UInt32.from(step).mod(2).equals(UInt32.from(0)),
       Field(1),
       Field(0)
     );
 
-    this.P2attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y), this.P2attackedatXY.get()));
-    
-    const p1 = this.comb_to_indiv(this.P1P2attacked.get(), Field(0));
-    const new_comb = this.indiv_to_comb(p1, Field(1));
-    this.P1P2attacked.set(Circuit.if(attack.equals(Field(1)), new_comb, this.P1P2attacked.get()));
+    const P2attackedatXY = this.P2attackedatXY.get();
+    this.P2attackedatXY.assertEquals(P2attackedatXY);
+
+    this.P2attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y, two16), P2attackedatXY));
+
+    const P1P2attacked = this.P1P2attacked.get();
+    this.P1P2attacked.assertEquals(P1P2attacked);
+
+    const p1 = this.comb_to_indiv(P1P2attacked, Field(0), two16);
+    const new_comb = this.indiv_to_comb(p1, Field(1), two16);
+    this.P1P2attacked.set(Circuit.if(attack.equals(Field(1)), new_comb, P1P2attacked));
   }
 
-  @method p2_attack_p1(x: Field, y: Field) {
+  @method p2_attack_p1(x: Field, y: Field, two16:Field) {
     const step_size = this.step_size.get();
     this.step_size.assertEquals(step_size);
-    const step = this.comb_to_indiv(this.step_size.get(), Field(0));
+    const step = this.comb_to_indiv(this.step_size.get(), Field(0), two16);
     const attack = Circuit.if(
-      UInt64.from(step).mod(5).equals(UInt64.from(0)),
+      UInt64.from(step).mod(2).equals(UInt64.from(0)),
       Field(1),
       Field(0)
     );
-    this.P1attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y), this.P1attackedatXY.get()));
 
-    const p2 = this.comb_to_indiv(this.P1P2attacked.get(), Field(1));
-    const new_comb = this.indiv_to_comb(Field(1), p2);
+    const P1attackedatXY = this.P1attackedatXY.get();
+    this.P1attackedatXY.get().assertEquals(P1attackedatXY);
+    this.P1attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y, two16), P1attackedatXY));
+
+    const p2 = this.comb_to_indiv(this.P1P2attacked.get(), Field(1), two16);
+    const new_comb = this.indiv_to_comb(Field(1), p2, two16);
     this.P1P2attacked.set(Circuit.if(attack.equals(Field(1)), new_comb, this.P1P2attacked.get()));
   }
 
@@ -211,14 +216,13 @@ export class CapSonar extends SmartContract {
    * Decrement health by 2 if the player is attacked at the exact position and 1 if the player is attacked at a position within 1 manhattan distance
    * @param x The x position of the p1
    * @param y The y position of the p1
-   * @returns  2 if the player is attacked at the exact position x and y and 1 if the player is attacked at a position within 1 manhattan distance of x and y
    */
 
-  @method p1_check_if_attacked(x: Field, y: Field, salt: Field) {
+  @method p1_check_if_attacked(x: Field, y: Field, salt: Field, two16: Field) {
     const curr_P1P2health = this.P1P2health.get();
     this.P1P2health.assertEquals(curr_P1P2health);
 
-    const combined_input = this.indiv_to_comb(x, y);
+    const combined_input = this.indiv_to_comb(x, y, two16);
     const curr_P1 = this.P1_pos.get();
     this.P1_pos.assertEquals(curr_P1);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
@@ -298,199 +302,199 @@ export class CapSonar extends SmartContract {
     this.P1P2attacked.set(this.indiv_to_comb(this.comb_to_indiv(this.P1P2attacked.get(), Field(0)), Field(0)));
   }
 
-  /**
-   * The player submerges into the water and can move 3 steps in the next turn
-   * This special power is activated after 15 turns
-   */
-  @method p1_submerge(
-    curr_x: Field,
-    curr_y: Field,
-    step1: Field,
-    step2: Field,
-    step3: Field,
-    salt: Field
-  ) {
-    const d1 = step1.sub(Field(1));
-    const d2 = step1.sub(Field(2));
-    const d3 = step1.sub(Field(3));
-    const d4 = step1.sub(Field(4));
+  // /**
+  //  * The player submerges into the water and can move 3 steps in the next turn
+  //  * This special power is activated after 15 turns
+  //  */
+  // @method p1_submerge(
+  //   curr_x: Field,
+  //   curr_y: Field,
+  //   step1: Field,
+  //   step2: Field,
+  //   step3: Field,
+  //   salt: Field
+  // ) {
+  //   const d1 = step1.sub(Field(1));
+  //   const d2 = step1.sub(Field(2));
+  //   const d3 = step1.sub(Field(3));
+  //   const d4 = step1.sub(Field(4));
 
-    const step1x = Circuit.switch(
-      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step1x = Circuit.switch(
+  //     [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step1y = Circuit.switch(
-      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
+  //   const step1y = Circuit.switch(
+  //     [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
 
-    const d12 = step2.sub(Field(1));
-    const d22 = step2.sub(Field(2));
-    const d32 = step2.sub(Field(3));
-    const d42 = step2.sub(Field(4));
+  //   const d12 = step2.sub(Field(1));
+  //   const d22 = step2.sub(Field(2));
+  //   const d32 = step2.sub(Field(3));
+  //   const d42 = step2.sub(Field(4));
 
-    const step2x = Circuit.switch(
-      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step2x = Circuit.switch(
+  //     [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step2y = Circuit.switch(
-      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
-    const d13 = step3.sub(Field(1));
-    const d23 = step3.sub(Field(2));
-    const d33 = step3.sub(Field(3));
-    const d43 = step3.sub(Field(4));
+  //   const step2y = Circuit.switch(
+  //     [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
+  //   const d13 = step3.sub(Field(1));
+  //   const d23 = step3.sub(Field(2));
+  //   const d33 = step3.sub(Field(3));
+  //   const d43 = step3.sub(Field(4));
 
-    const step3x = Circuit.switch(
-      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step3x = Circuit.switch(
+  //     [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step3y = Circuit.switch(
-      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
+  //   const step3y = Circuit.switch(
+  //     [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
     
-    const P1_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0));
-    const step = this.comb_to_indiv(this.step_size.get(), Field(0));
+  //   const P1_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0));
+  //   const step = this.comb_to_indiv(this.step_size.get(), Field(0));
 
-    const submerge = Circuit.if(
-      step.sub(P1_submerge_step).greaterThanOrEqual(15),
-      Field(1),
-      Field(0)
-    );
+  //   const submerge = Circuit.if(
+  //     step.sub(P1_submerge_step).greaterThanOrEqual(15),
+  //     Field(1),
+  //     Field(0)
+  //   );
     
-    this.P1P2_submerge_step.set(
-      Circuit.if(
-        submerge.equals(Field(1)),
-        this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1))),
-        this.indiv_to_comb(P1_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1)))
-      )
-    );
-    const dx = Circuit.if(
-      submerge.equals(Field(1)),
-      step1x.add(step2x).add(step3x),
-      Field(0)
-    );
-    const dy = Circuit.if(
-      submerge.equals(Field(1)),
-      step1y.add(step2y).add(step3y),
-      Field(0)
-    );
+  //   this.P1P2_submerge_step.set(
+  //     Circuit.if(
+  //       submerge.equals(Field(1)),
+  //       this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1))),
+  //       this.indiv_to_comb(P1_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1)))
+  //     )
+  //   );
+  //   const dx = Circuit.if(
+  //     submerge.equals(Field(1)),
+  //     step1x.add(step2x).add(step3x),
+  //     Field(0)
+  //   );
+  //   const dy = Circuit.if(
+  //     submerge.equals(Field(1)),
+  //     step1y.add(step2y).add(step3y),
+  //     Field(0)
+  //   );
 
-    this.check_valid_pos(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+  //   this.check_valid_pos(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
 
-    const combined_input = this.indiv_to_comb(curr_x, curr_y);
-    const curr_P1 = this.P1_pos.get();
-    this.P1_pos.assertEquals(curr_P1);
-    Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
+  //   const combined_input = this.indiv_to_comb(curr_x, curr_y);
+  //   const curr_P1 = this.P1_pos.get();
+  //   this.P1_pos.assertEquals(curr_P1);
+  //   Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
 
-    const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
-    this.P1_pos.set(Poseidon.hash([salt, combined_mod]));
-  }
+  //   const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+  //   this.P1_pos.set(Poseidon.hash([salt, combined_mod]));
+  // }
 
-  @method p2_submerge(
-    curr_x: Field,
-    curr_y: Field,
-    step1: Field,
-    step2: Field,
-    step3: Field,
-    salt: Field
-  ) {
-    const d1 = step1.sub(Field(1));
-    const d2 = step1.sub(Field(2));
-    const d3 = step1.sub(Field(3));
-    const d4 = step1.sub(Field(4));
+  // @method p2_submerge(
+  //   curr_x: Field,
+  //   curr_y: Field,
+  //   step1: Field,
+  //   step2: Field,
+  //   step3: Field,
+  //   salt: Field
+  // ) {
+  //   const d1 = step1.sub(Field(1));
+  //   const d2 = step1.sub(Field(2));
+  //   const d3 = step1.sub(Field(3));
+  //   const d4 = step1.sub(Field(4));
 
-    const step1x = Circuit.switch(
-      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step1x = Circuit.switch(
+  //     [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step1y = Circuit.switch(
-      [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
+  //   const step1y = Circuit.switch(
+  //     [d1.isZero(), d2.isZero(), d3.isZero(), d4.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
 
-    const d12 = step2.sub(Field(1));
-    const d22 = step2.sub(Field(2));
-    const d32 = step2.sub(Field(3));
-    const d42 = step2.sub(Field(4));
+  //   const d12 = step2.sub(Field(1));
+  //   const d22 = step2.sub(Field(2));
+  //   const d32 = step2.sub(Field(3));
+  //   const d42 = step2.sub(Field(4));
 
-    const step2x = Circuit.switch(
-      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step2x = Circuit.switch(
+  //     [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step2y = Circuit.switch(
-      [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
-    const d13 = step3.sub(Field(1));
-    const d23 = step3.sub(Field(2));
-    const d33 = step3.sub(Field(3));
-    const d43 = step3.sub(Field(4));
+  //   const step2y = Circuit.switch(
+  //     [d12.isZero(), d22.isZero(), d32.isZero(), d42.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
+  //   const d13 = step3.sub(Field(1));
+  //   const d23 = step3.sub(Field(2));
+  //   const d33 = step3.sub(Field(3));
+  //   const d43 = step3.sub(Field(4));
 
-    const step3x = Circuit.switch(
-      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
-      Field,
-      [Field(0), Field(1), Field(0), Field(-1)]
-    );
+  //   const step3x = Circuit.switch(
+  //     [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+  //     Field,
+  //     [Field(0), Field(1), Field(0), Field(-1)]
+  //   );
 
-    const step3y = Circuit.switch(
-      [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
-      Field,
-      [Field(1), Field(0), Field(-1), Field(0)]
-    );
+  //   const step3y = Circuit.switch(
+  //     [d13.isZero(), d23.isZero(), d33.isZero(), d43.isZero()],
+  //     Field,
+  //     [Field(1), Field(0), Field(-1), Field(0)]
+  //   );
     
-    const P2_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1));
-    const step = this.comb_to_indiv(this.step_size.get(), Field(1));
+  //   const P2_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1));
+  //   const step = this.comb_to_indiv(this.step_size.get(), Field(1));
 
-    const submerge = Circuit.if(
-      step.sub(P2_submerge_step).greaterThanOrEqual(15),
-      Field(1),
-      Field(0)
-    );
+  //   const submerge = Circuit.if(
+  //     step.sub(P2_submerge_step).greaterThanOrEqual(15),
+  //     Field(1),
+  //     Field(0)
+  //   );
 
-    this.P1P2_submerge_step.set(
-      Circuit.if(
-        submerge.equals(Field(1)),
-        this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0))),
-        this.indiv_to_comb(P2_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0)))
-      )
-    );
-    const dx = Circuit.if(
-      submerge.equals(Field(1)),
-      step1x.add(step2x).add(step3x),
-      Field(0)
-    );
-    const dy = Circuit.if(
-      submerge.equals(Field(1)),
-      step1y.add(step2y).add(step3y),
-      Field(0)
-    );
+  //   this.P1P2_submerge_step.set(
+  //     Circuit.if(
+  //       submerge.equals(Field(1)),
+  //       this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0))),
+  //       this.indiv_to_comb(P2_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0)))
+  //     )
+  //   );
+  //   const dx = Circuit.if(
+  //     submerge.equals(Field(1)),
+  //     step1x.add(step2x).add(step3x),
+  //     Field(0)
+  //   );
+  //   const dy = Circuit.if(
+  //     submerge.equals(Field(1)),
+  //     step1y.add(step2y).add(step3y),
+  //     Field(0)
+  //   );
 
-    this.check_valid_pos(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+  //   this.check_valid_pos(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
 
-    const combined_input = this.indiv_to_comb(curr_x, curr_y);
-    const curr_P2 = this.P2_pos.get();
-    this.P2_pos.assertEquals(curr_P2);
-    Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
+  //   const combined_input = this.indiv_to_comb(curr_x, curr_y);
+  //   const curr_P2 = this.P2_pos.get();
+  //   this.P2_pos.assertEquals(curr_P2);
+  //   Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
 
-    const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
-    this.P2_pos.set(Poseidon.hash([salt, combined_mod]));
-  }
+  //   const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+  //   this.P2_pos.set(Poseidon.hash([salt, combined_mod]));
+  // }
 }
