@@ -8,7 +8,7 @@ import {
   Character,
   Bool,
   Circuit,
-  UInt64,
+  UInt32,
 } from 'snarkyjs';
 
 export class CapSonar extends SmartContract {
@@ -19,7 +19,6 @@ export class CapSonar extends SmartContract {
   // @state(Field) P2x = State<Field>(); // Hidden
   // @state(Field) P2y = State<Field>(); // Hidden
   @state(Field) P2_pos = State<Field>(); // Hidden
-
 
   // @state(Field) step = State<Field>(); // Not Hidden
   // @state(Field) size = State<Field>(); // Not Hidden
@@ -54,12 +53,10 @@ export class CapSonar extends SmartContract {
     this.P1P2health.set(this.indiv_to_comb(health, health));
   }
 
-
   @method p2_init_position(salt: Field, x: Field, y: Field) {
     this.check_valid_pos(x, y);
     const combined_input = this.indiv_to_comb(x, y);
     this.P2_pos.set(Poseidon.hash([salt, combined_input]));
-
   }
 
   @method p1_init_position(salt: Field, x: Field, y: Field) {
@@ -81,19 +78,23 @@ export class CapSonar extends SmartContract {
    * @param second number to store in second 16 bytes
    * @returns first * 2^16 + y
    */
-  @method indiv_to_comb(first: Field, second:Field) {
-    const two16 = Field(2).square().square().square().square();
+  @method indiv_to_comb(first: Field, second: Field): Field {
+    const two16 = Field(65536);
     return first.mul(two16).add(second);
   }
   /**
    * @param comb number to split into two 16 byte numbers
    * @returns [first, second] where first is the first 16 bytes of comb and second is the second 16 bytes of comb
    */
-  @method comb_to_indiv(comb:Field, index: Field) {
-    const combInt = UInt64.from(comb)
-    const modnum = UInt64.from(Field(2).square().square().square().square())
+  @method comb_to_indiv(comb: Field, index: Field): Field {
+    const combInt = UInt32.from(comb);
+    const modnum = UInt32.from(Field(65536));
     const divmod = combInt.divMod(modnum);
-    return Circuit.if(index.isZero(), divmod.quotient.toFields()[0], divmod.rest.toFields()[0]);
+    return Circuit.if(
+      index.isZero(),
+      divmod.quotient.toFields()[0],
+      divmod.rest.toFields()[0]
+    );
   }
 
   @method update_p1_pos(direction: Field, xc: Field, yc: Field, salt: Field) {
@@ -115,7 +116,7 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
+
     this.check_valid_pos(xc.add(xmove), yc.add(ymove));
 
     const combined_input = this.indiv_to_comb(xc, yc);
@@ -147,18 +148,17 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
+
     this.check_valid_pos(xc.add(xmove), yc.add(ymove));
     const combined_input = this.indiv_to_comb(xc, yc);
 
     const curr_P2 = this.P2_pos.get();
     this.P2_pos.assertEquals(curr_P2);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
-    
+
     const combined_mod = this.indiv_to_comb(xc.add(xmove), yc.add(ymove));
     this.P2_pos.set(Poseidon.hash([salt, combined_mod]));
   }
-
 
   //check the x and y is within the board size
   @method check_valid_pos(x: Field, y: Field) {
@@ -178,16 +178,27 @@ export class CapSonar extends SmartContract {
     this.step_size.assertEquals(step_size);
     const step = this.comb_to_indiv(this.step_size.get(), Field(0));
     const attack = Circuit.if(
-      UInt64.from(step).mod(5).equals(UInt64.from(0)),
+      UInt32.from(step).mod(5).equals(UInt32.from(0)),
       Field(1),
       Field(0)
     );
 
-    this.P2attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y), this.P2attackedatXY.get()));
-    
-    const p1 = this.comb_to_indiv(this.P1P2attacked.get(), Field(0));
+    this.P2attackedatXY.set(
+      Circuit.if(
+        attack.equals(Field(1)),
+        this.indiv_to_comb(x, y),
+        this.P2attackedatXY.get()
+      )
+    );
+
+    const P1P2attacked = this.P1P2attacked.get();
+    this.P1P2attacked.assertEquals(P1P2attacked);
+    const p1 = this.comb_to_indiv(P1P2attacked, Field(0));
     const new_comb = this.indiv_to_comb(p1, Field(1));
-    this.P1P2attacked.set(Circuit.if(attack.equals(Field(1)), new_comb, this.P1P2attacked.get()));
+
+    this.P1P2attacked.set(
+      Circuit.if(attack.equals(Field(1)), new_comb, P1P2attacked)
+    );
   }
 
   @method p2_attack_p1(x: Field, y: Field) {
@@ -195,15 +206,25 @@ export class CapSonar extends SmartContract {
     this.step_size.assertEquals(step_size);
     const step = this.comb_to_indiv(this.step_size.get(), Field(0));
     const attack = Circuit.if(
-      UInt64.from(step).mod(5).equals(UInt64.from(0)),
+      UInt32.from(step).mod(5).equals(UInt32.from(0)),
       Field(1),
       Field(0)
     );
-    this.P1attackedatXY.set(Circuit.if(attack.equals(Field(1)), this.indiv_to_comb(x, y), this.P1attackedatXY.get()));
+
+    this.P1P2attacked.assertEquals(this.P1P2attacked.get());
+    this.P1attackedatXY.set(
+      Circuit.if(
+        attack.equals(Field(1)),
+        this.indiv_to_comb(x, y),
+        this.P1attackedatXY.get()
+      )
+    );
 
     const p2 = this.comb_to_indiv(this.P1P2attacked.get(), Field(1));
     const new_comb = this.indiv_to_comb(Field(1), p2);
-    this.P1P2attacked.set(Circuit.if(attack.equals(Field(1)), new_comb, this.P1P2attacked.get()));
+    this.P1P2attacked.set(
+      Circuit.if(attack.equals(Field(1)), new_comb, this.P1P2attacked.get())
+    );
   }
 
   /**
@@ -223,16 +244,20 @@ export class CapSonar extends SmartContract {
     this.P1_pos.assertEquals(curr_P1);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
 
-    const P1attackedatX = this.comb_to_indiv(this.P1attackedatXY.get(), Field(0));
-    const P1attackedatY = this.comb_to_indiv(this.P1attackedatXY.get(), Field(1));
+    const P1attackedatX = this.comb_to_indiv(
+      this.P1attackedatXY.get(),
+      Field(0)
+    );
+    const P1attackedatY = this.comb_to_indiv(
+      this.P1attackedatXY.get(),
+      Field(1)
+    );
     const xsub1 = P1attackedatX.sub(1);
     const ysub1 = P1attackedatY.sub(1);
     const xadd1 = P1attackedatX.add(1);
     const yadd1 = P1attackedatY.add(1);
 
-    const cond1 = x
-      .equals(P1attackedatX)
-      .and(y.equals(P1attackedatY));
+    const cond1 = x.equals(P1attackedatX).and(y.equals(P1attackedatY));
     const cond2 = x.equals(xsub1).and(y.equals(P1attackedatY));
     const cond3 = x.equals(xadd1).and(y.equals(P1attackedatY));
     const cond4 = x.equals(P1attackedatX).and(y.equals(ysub1));
@@ -250,10 +275,21 @@ export class CapSonar extends SmartContract {
       [Field(2), Field(1), Field(1), Field(1), Field(1), Field(0)]
     );
     const curr_P1health = this.comb_to_indiv(this.P1P2health.get(), Field(0));
-    const mod_P1health = curr_P1health.sub(damage.mul(this.comb_to_indiv(this.P1P2attacked.get(), Field(0))));
-
-    this.P1P2health.set(this.indiv_to_comb(mod_P1health, this.comb_to_indiv(this.P1P2health.get(), Field(1))));
-    this.P1P2attacked.set(this.indiv_to_comb(Field(0), this.comb_to_indiv(this.P1P2attacked.get(), Field(1))));
+    const mod_P1health = curr_P1health.sub(
+      damage.mul(this.comb_to_indiv(this.P1P2attacked.get(), Field(0)))
+    );
+    this.P1P2health.set(
+      this.indiv_to_comb(
+        mod_P1health,
+        this.comb_to_indiv(this.P1P2health.get(), Field(1))
+      )
+    );
+    this.P1P2attacked.set(
+      this.indiv_to_comb(
+        Field(0),
+        this.comb_to_indiv(this.P1P2attacked.get(), Field(1))
+      )
+    );
   }
 
   @method p2_check_if_attacked(x: Field, y: Field, salt: Field) {
@@ -265,16 +301,20 @@ export class CapSonar extends SmartContract {
     this.P2_pos.assertEquals(curr_P2);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
 
-    const P2attackedatX = this.comb_to_indiv(this.P2attackedatXY.get(), Field(0));
-    const P2attackedatY = this.comb_to_indiv(this.P2attackedatXY.get(), Field(1));
+    const P2attackedatX = this.comb_to_indiv(
+      this.P2attackedatXY.get(),
+      Field(0)
+    );
+    const P2attackedatY = this.comb_to_indiv(
+      this.P2attackedatXY.get(),
+      Field(1)
+    );
     const xsub1 = P2attackedatX.sub(1);
     const ysub1 = P2attackedatY.sub(1);
     const xadd1 = P2attackedatX.add(1);
     const yadd1 = P2attackedatY.add(1);
 
-    const cond1 = x
-      .equals(P2attackedatX)
-      .and(y.equals(P2attackedatY));
+    const cond1 = x.equals(P2attackedatX).and(y.equals(P2attackedatY));
     const cond2 = x.equals(xsub1).and(y.equals(P2attackedatY));
     const cond3 = x.equals(xadd1).and(y.equals(P2attackedatY));
     const cond4 = x.equals(P2attackedatX).and(y.equals(ysub1));
@@ -291,11 +331,14 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(2), Field(1), Field(1), Field(1), Field(1), Field(0)]
     );
-    const curr_P2health = this.comb_to_indiv(this.P1P2health.get(), Field(1));
-    const mod_P2health = curr_P2health.sub(damage.mul(this.comb_to_indiv(this.P1P2attacked.get(), Field(1))));
+    const p1p2attacked = this.P1P2attacked.get();
 
-    this.P1P2health.set(this.indiv_to_comb(this.comb_to_indiv(this.P1P2health.get(), Field(0)), mod_P2health));
-    this.P1P2attacked.set(this.indiv_to_comb(this.comb_to_indiv(this.P1P2attacked.get(), Field(0)), Field(0)));
+    this.P1P2health.set(
+      this.P1P2health.get().sub(
+        damage.mul(this.comb_to_indiv(p1p2attacked, Field(1)))
+      )
+    );
+    this.P1P2attacked.set(p1p2attacked.div(Field(65536)).mul(Field(65536)));
   }
 
   /**
@@ -359,8 +402,11 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
-    const P1_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0));
+
+    const P1_submerge_step = this.comb_to_indiv(
+      this.P1P2_submerge_step.get(),
+      Field(0)
+    );
     const step = this.comb_to_indiv(this.step_size.get(), Field(0));
 
     const submerge = Circuit.if(
@@ -368,12 +414,18 @@ export class CapSonar extends SmartContract {
       Field(1),
       Field(0)
     );
-    
+
     this.P1P2_submerge_step.set(
       Circuit.if(
         submerge.equals(Field(1)),
-        this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1))),
-        this.indiv_to_comb(P1_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1)))
+        this.indiv_to_comb(
+          step,
+          this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1))
+        ),
+        this.indiv_to_comb(
+          P1_submerge_step,
+          this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1))
+        )
       )
     );
     const dx = Circuit.if(
@@ -394,7 +446,10 @@ export class CapSonar extends SmartContract {
     this.P1_pos.assertEquals(curr_P1);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P1);
 
-    const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+    const combined_mod = this.indiv_to_comb(
+      curr_x.add(Field(dx)),
+      curr_y.add(Field(dy))
+    );
     this.P1_pos.set(Poseidon.hash([salt, combined_mod]));
   }
 
@@ -455,8 +510,11 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
-    const P2_submerge_step = this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(1));
+
+    const P2_submerge_step = this.comb_to_indiv(
+      this.P1P2_submerge_step.get(),
+      Field(1)
+    );
     const step = this.comb_to_indiv(this.step_size.get(), Field(1));
 
     const submerge = Circuit.if(
@@ -468,8 +526,14 @@ export class CapSonar extends SmartContract {
     this.P1P2_submerge_step.set(
       Circuit.if(
         submerge.equals(Field(1)),
-        this.indiv_to_comb(step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0))),
-        this.indiv_to_comb(P2_submerge_step, this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0)))
+        this.indiv_to_comb(
+          step,
+          this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0))
+        ),
+        this.indiv_to_comb(
+          P2_submerge_step,
+          this.comb_to_indiv(this.P1P2_submerge_step.get(), Field(0))
+        )
       )
     );
     const dx = Circuit.if(
@@ -490,7 +554,10 @@ export class CapSonar extends SmartContract {
     this.P2_pos.assertEquals(curr_P2);
     Poseidon.hash([salt, combined_input]).assertEquals(curr_P2);
 
-    const combined_mod = this.indiv_to_comb(curr_x.add(Field(dx)), curr_y.add(Field(dy)));
+    const combined_mod = this.indiv_to_comb(
+      curr_x.add(Field(dx)),
+      curr_y.add(Field(dy))
+    );
     this.P2_pos.set(Poseidon.hash([salt, combined_mod]));
   }
 }
