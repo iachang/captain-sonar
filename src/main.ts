@@ -218,9 +218,8 @@ await txn7.sign([senderKey]).send();
 
 const p1health_after = zkAppInstance.P1P2health.get();
 Field(2).assertEquals(p1health_before.sub(p1health_after));
+indiv_to_comb(Field(10), Field(8)).assertEquals(p1health_after);
 
-console.log(zkAppInstance.P1P2attacked.get().toString());
-console.log(zkAppInstance.P1P2attacked.get().div(2).mul(2).toString());
 const atk2b = zkAppInstance.P1P2attacked.get();
 Field(0).assertEquals(atk2b);
 
@@ -245,9 +244,64 @@ const atk3b = zkAppInstance.P1P2attacked.get();
 const numt8b = indiv_to_comb(Field(1), Field(0));
 numt8b.assertEquals(atk3a);
 Field(1).assertEquals(atk3b);
+Field(0).assertEquals(comb_to_indiv(atk3b, 0));
 Field(1).assertEquals(comb_to_indiv(atk3b, 1));
 
 console.log('P2 attacked at: %d, P2 is attacked? %d', atk3a, atk3b);
+
+// ----------------------------------------------------
+
+const txn9 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.p2_attack_p1(Field(0), Field(1));
+});
+
+await txn9.prove();
+await txn9.sign([senderKey]).send();
+
+const atk4a = zkAppInstance.P1attackedatXY.get();
+const atk4b = zkAppInstance.P1P2attacked.get();
+
+const numt9a = indiv_to_comb(Field(0), Field(1));
+numt9a.assertEquals(atk4a);
+Field(1).assertEquals(comb_to_indiv(atk4b, 0));
+Field(1).assertEquals(comb_to_indiv(atk4b, 1));
+
+console.log('P2 attacked at: %d, P2 is attacked? %d', atk3a, atk3b);
+
+// ----------------------------------------------------
+
+const p1health_before_2 = zkAppInstance.P1P2health.get();
+
+const txn10 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt);
+});
+
+await txn10.prove();
+await txn10.sign([senderKey]).send();
+
+const p1health_after_2 = zkAppInstance.P1P2health.get();
+Field(1).assertEquals(p1health_before_2.sub(p1health_after_2));
+indiv_to_comb(Field(10), Field(7)).assertEquals(p1health_after_2);
+
+const atk5a = zkAppInstance.P1P2attacked.get();
+Field(1).assertEquals(comb_to_indiv(atk5a, 0));
+Field(0).assertEquals(comb_to_indiv(atk5a, 1));
+
+// ----------------------------------------------------
+
+const txn11 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.p1_check_if_attacked(Field(0), Field(0), salt);
+});
+
+await txn11.prove();
+await txn11.sign([senderKey]).send();
+
+const p2health_after = zkAppInstance.P1P2health.get();
+indiv_to_comb(Field(9), Field(7)).assertEquals(p2health_after);
+
+const atk6a = zkAppInstance.P1P2attacked.get();
+Field(0).assertEquals(comb_to_indiv(atk6a, 0));
+Field(0).assertEquals(comb_to_indiv(atk6a, 1));
 
 // ----------------------------------------------------
 
