@@ -20,7 +20,6 @@ export class CapSonar extends SmartContract {
   // @state(Field) P2y = State<Field>(); // Hidden
   @state(Field) P2_pos = State<Field>(); // Hidden
 
-
   // @state(Field) step = State<Field>(); // Not Hidden
   // @state(Field) size = State<Field>(); // Not Hidden
   @state(Field) step_size = State<Field>(); // Not Hidden
@@ -54,12 +53,10 @@ export class CapSonar extends SmartContract {
     this.P1P2health.set(this.indiv_to_comb(health, health));
   }
 
-
   @method p2_init_position(salt: Field, x: Field, y: Field) {
     // this.check_valid_pos(x, y);
     const combined_input = this.indiv_to_comb(x, y);
     this.P2_pos.set(Poseidon.hash([salt, combined_input]));
-
   }
 
   @method p1_init_position(salt: Field, x: Field, y: Field) {
@@ -114,7 +111,7 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
+
     this.check_valid_pos(xc.add(xmove), yc.add(ymove));
     const combined_input = this.indiv_to_comb(xc, yc);
     const curr_P1 = this.P1_pos.get();
@@ -143,7 +140,7 @@ export class CapSonar extends SmartContract {
       Field,
       [Field(1), Field(0), Field(-1), Field(0)]
     );
-    
+
     this.check_valid_pos(xc.add(xmove), yc.add(ymove));
     const combined_input = this.indiv_to_comb(xc, yc);
     // console.log("cur_pos_check", xc, yc, combined_input);
@@ -249,9 +246,7 @@ export class CapSonar extends SmartContract {
     const xadd1 = P1attackedatX.add(1);
     const yadd1 = P1attackedatY.add(1);
 
-    const cond1 = x
-      .equals(P1attackedatX)
-      .and(y.equals(P1attackedatY));
+    const cond1 = x.equals(P1attackedatX).and(y.equals(P1attackedatY));
     const cond2 = x.equals(xsub1).and(y.equals(P1attackedatY));
     const cond3 = x.equals(xadd1).and(y.equals(P1attackedatY));
     const cond4 = x.equals(P1attackedatX).and(y.equals(ysub1));
@@ -313,9 +308,7 @@ export class CapSonar extends SmartContract {
     const xadd1 = P2attackedatX.add(1);
     const yadd1 = P2attackedatY.add(1);
 
-    const cond1 = x
-      .equals(P2attackedatX)
-      .and(y.equals(P2attackedatY));
+    const cond1 = x.equals(P2attackedatX).and(y.equals(P2attackedatY));
     const cond2 = x.equals(xsub1).and(y.equals(P2attackedatY));
     const cond3 = x.equals(xadd1).and(y.equals(P2attackedatY));
     const cond4 = x.equals(P2attackedatX).and(y.equals(ysub1));
