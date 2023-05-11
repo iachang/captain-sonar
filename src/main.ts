@@ -30,15 +30,15 @@ let salt = Field.random();
 // create a destination we will deploy the smart contract to
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
-const two16 = Field(2**16);
+// const two16 = Field(2**16);
 
 const zkAppInstance = new CapSonar(zkAppAddress); //confused why there is one address but no args in constructor
 const deployTxn = await Mina.transaction(deployerAccount, () => {
   AccountUpdate.fundNewAccount(deployerAccount);
   zkAppInstance.deploy();
-  zkAppInstance.p1_init_position(salt, Field(0), Field(0), two16);
-  zkAppInstance.p2_init_position(salt, Field(0), Field(0), two16);
-  zkAppInstance.init_board(Field(100), two16);
+  zkAppInstance.p1_init_position(salt, Field(0), Field(0));
+  zkAppInstance.p2_init_position(salt, Field(0), Field(0));
+  zkAppInstance.init_board(Field(100));
 });
 await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
@@ -78,7 +78,7 @@ while (true) {
 
 // ----------------------------------------------------
 const txn1 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(1), Field(0), Field(0), salt, two16);
+  zkAppInstance.update_p1_pos(Field(1), Field(0), Field(0), salt);
 });
 
 await txn1.prove();
@@ -94,7 +94,7 @@ await txn1.sign([senderKey]).send();
 // ----------------------------------------------------
 
 const txn2 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(2), Field(0), Field(1), salt, two16);
+  zkAppInstance.update_p1_pos(Field(2), Field(0), Field(1), salt);
 });
 
 await txn2.prove();
@@ -110,7 +110,7 @@ await txn2.sign([senderKey]).send();
 // ----------------------------------------------------
 
 const txn3 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(3), Field(1), Field(1), salt, two16);
+  zkAppInstance.update_p1_pos(Field(3), Field(1), Field(1), salt);
 });
 
 await txn3.prove();
@@ -126,7 +126,7 @@ await txn3.sign([senderKey]).send();
 // ----------------------------------------------------
 
 const txn4 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(4), Field(1), Field(0), salt, two16);
+  zkAppInstance.update_p1_pos(Field(4), Field(1), Field(0), salt);
 });
 
 await txn4.prove();
@@ -142,7 +142,7 @@ await txn4.sign([senderKey]).send();
 // ----------------------------------------------------
 
 const txn5 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.check_valid_pos(Field(0), Field(0), two16);
+  zkAppInstance.check_valid_pos(Field(0), Field(0));
 });
 
 await txn5.prove();
@@ -151,7 +151,7 @@ await txn5.sign([senderKey]).send();
 // ----------------------------------------------------
 
 const txn6 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.update_p1_pos(Field(3), Field(0), Field(0), salt, two16);
+  zkAppInstance.update_p1_pos(Field(3), Field(0), Field(0), salt);
 });
 
 await txn6.prove();
