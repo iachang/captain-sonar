@@ -23,4 +23,7 @@ npm run coverage
 
 ## License
 
+## Additional Install
+Install npm prompt-sync
+
 [Apache-2.0](LICENSE)
