@@ -137,7 +137,7 @@ export class CapSonar extends SmartContract {
     y.assertGreaterThanOrEqual(Field(0));
   }
 
-  //wait exactly 5 steps to attack again
+  //wait exactly 2 steps to attack again
   @method p1_attack_p2(x: Field, y: Field) {
     const step_size = this.step_size.get();
     this.step_size.assertEquals(step_size);
@@ -326,7 +326,7 @@ export class CapSonar extends SmartContract {
 
   /**
    * The player submerges into the water and can move 2 steps in the next turn
-   * This special power is activated after 15 turns
+   * This special power is activated after 4 turns
    */
   @method p1_submerge(
     curr_x: Field,
@@ -383,7 +383,7 @@ export class CapSonar extends SmartContract {
     const P1_submerge_step = divmod2.quotient.toFields()[0];
     const P2_submerge_step = divmod2.rest.toFields()[0];
 
-    const step_sub_bool = UInt32.from(step.sub(P1_submerge_step)).greaterThanOrEqual(UInt32.from(5));
+    const step_sub_bool = UInt32.from(step.sub(P1_submerge_step)).greaterThanOrEqual(UInt32.from(4));
     const submerge = Circuit.if(step_sub_bool, Field(1), Field(0));
     this.P1P2_submerge_step.set(
       Circuit.if(
@@ -462,7 +462,7 @@ export class CapSonar extends SmartContract {
     const P1_submerge_step = divmod2.quotient.toFields()[0];
     const P2_submerge_step = divmod2.rest.toFields()[0];
 
-    const step_sub_bool = UInt32.from(step.sub(P2_submerge_step)).greaterThanOrEqual(UInt32.from(5));
+    const step_sub_bool = UInt32.from(step.sub(P2_submerge_step)).greaterThanOrEqual(UInt32.from(4));
     const submerge = Circuit.if(step_sub_bool, Field(1), Field(0));
     this.P1P2_submerge_step.set(
       Circuit.if(

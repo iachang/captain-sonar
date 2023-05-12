@@ -173,7 +173,7 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
       await txn3.prove();
       await txn3.sign([senderKey]).send();
     }
-  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 5) {
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 4) {
     let p1_submerge = prompt('Do you want to submerge (Y/N): ');
     if (p1_submerge == 'Y') {
       let step1 = prompt('What is the first direction in the submerge: ');
@@ -234,7 +234,7 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
       await txn4.prove();
       await txn4.sign([senderKey]).send();
     }
-  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 5) {
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 4) {
     const coords = P2_submerge_policy(P2x, P2y);
     const p2_submerge = coords[0];
     const step1 = coords[1];
