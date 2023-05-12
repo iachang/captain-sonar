@@ -45,10 +45,11 @@ Shoot the Player 2 submarine down in the minimum amount of steps.
 5. A leaderboard will show the usernames with the min steps to beat the Player 2 policy
 6. An initial board will show up with the initial position of your submarine. The bottom left is (0, 0) and the board is 0 indexed. The "O" represent cells with empty water and the "X" represent the position of the submarine. The players' initial health is shown below the board.
 7. At each timestep, we type in an integer for one of the cardinal directions for the following question: "Which direction do you want to travel (N=1, E=2, S=3, W=4):"
-8. Every 2 timesteps, Player 1 will indicate whether they want to attack Player 2 and what is the X and Y position they want to attack.
-9. At the start of the next turn if it was a direct hit the other player's health will drop by 2, if they were within 1 Manhattan distance then it will drop by 1.
-10. If the other player has honed in on your position, then every at least 10 steps you can use the submerge ability where you will type in one integer for step 1 (N=1, E=2, S=3, W=4) and one integer for step 2. The other player will not see the directions you took, so this confuse the other player.
-11. The game is over when either player has 0 health.
+8. When Player 2 moves, there is a message on the terminal which indicates the direction that they moved (e.g. Player 2 moved 4 which means Player 2 moved West).
+9. Every 2 timesteps, Player 1 will indicate whether they want to attack Player 2 and what is the X and Y position they want to attack.
+10. At the start of the next turn if it was a direct hit the other player's health will drop by 2, if they were within 1 Manhattan distance then it will drop by 1.
+11. If the other player has honed in on your position, then every at least 10 steps you can use the submerge ability where you will type in one integer for step 1 (N=1, E=2, S=3, W=4) and one integer for step 2. The other player will not see the directions you took, so this confuse the other player.
+12. The game is over when either player has 0 health.
 
 
 
