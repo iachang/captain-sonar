@@ -310,12 +310,6 @@ export class CapSonar extends SmartContract {
     const curr_P1attacked = divmod3.quotient.toFields()[0]
     const curr_P2attacked = divmod3.rest.toFields()[0];
 
-    // console.log("health: ", curr_P1health, curr_P2health);
-    // console.log("attacked: ", curr_P1attacked, curr_P2attacked);
-    // console.log("P2attackedatXY: ", P2attackedatX, P2attackedatY);
-    // console.log("curr xy: ", x, y);
-    // console.log("damage: ", damage);
-
     const mod_P2health = curr_P2health.sub(damage.mul(curr_P2attacked));
     this.P1P2health.set(this.indiv_to_comb(curr_P1health, mod_P2health));
     this.P1P2attacked.set(this.indiv_to_comb(curr_P1attacked, Field(0)));
@@ -389,7 +383,7 @@ export class CapSonar extends SmartContract {
     const P1_submerge_step = divmod2.quotient.toFields()[0];
     const P2_submerge_step = divmod2.rest.toFields()[0];
 
-    const step_sub_bool = UInt32.from(step.sub(P1_submerge_step)).greaterThanOrEqual(UInt32.from(2));
+    const step_sub_bool = UInt32.from(step.sub(P1_submerge_step)).greaterThanOrEqual(UInt32.from(5));
     const submerge = Circuit.if(step_sub_bool, Field(1), Field(0));
     this.P1P2_submerge_step.set(
       Circuit.if(
@@ -468,7 +462,7 @@ export class CapSonar extends SmartContract {
     const P1_submerge_step = divmod2.quotient.toFields()[0];
     const P2_submerge_step = divmod2.rest.toFields()[0];
 
-    const step_sub_bool = UInt32.from(step.sub(P2_submerge_step)).greaterThanOrEqual(UInt32.from(2));
+    const step_sub_bool = UInt32.from(step.sub(P2_submerge_step)).greaterThanOrEqual(UInt32.from(5));
     const submerge = Circuit.if(step_sub_bool, Field(1), Field(0));
     this.P1P2_submerge_step.set(
       Circuit.if(

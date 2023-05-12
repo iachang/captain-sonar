@@ -65,13 +65,12 @@ let leaderboardMap = new Map();
 try {
   const mapString = readFileSync('leaderboard.txt', 'utf8');
   const parsedMap = JSON.parse(mapString);
-  const myMap = new Map(parsedMap);
-  const sortedArray = [...myMap].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  leaderboardMap = new Map(parsedMap);
+  const sortedArray = [...leaderboardMap].sort((a, b) => a[0] < b[0] ? -1 : 1);
   for (const [key, value] of sortedArray) {
     console.log(`Username: ${key}, Timestep: ${value}`);
   }
 } catch (err) {
-  leaderboardMap.set(username, 1000);
   console.log("No existing leaderboard...");
 }
 
@@ -151,8 +150,14 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
   });
   await p1_attack_check.prove();
   await p1_attack_check.sign([senderKey]).send();
-  // console.log("Done checking if player 1 was attacked");
 
+  if (!(Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkAppInstance.P1P2health.get() / two16) <= health)) {
+    const p1health = Math.floor(zkAppInstance.P1P2health.get() / two16);
+    const p2health = zkAppInstance.P1P2health.get() % two16;
+    console.log("Player 1's health: ", p1health > health ? 0 : p1health);
+    console.log("Player 2's health: ", p2health > health ? 0 : p2health);
+    break;
+  }
   let new_P1_salt = Field.random();
 
   if (timestep % 2 == 0 && timestep != 0) {
@@ -168,7 +173,7 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
       await txn3.prove();
       await txn3.sign([senderKey]).send();
     }
-  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 2) {
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 5) {
     let p1_submerge = prompt('Do you want to submerge (Y/N): ');
     if (p1_submerge == 'Y') {
       let step1 = prompt('What is the first direction in the submerge: ');
@@ -215,7 +220,6 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
   });
   await p2_attack_check.prove();
   await p2_attack_check.sign([senderKey]).send();
-  // console.log("Done checking if player 2 was attacked");
   let new_P2_salt = Field.random();
   if (timestep % 2 == 0 && timestep != 0) { 
     const outputs = P2_action_policy(P2x, P2y, timestep);
@@ -223,14 +227,14 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
     let x2 = Number(outputs[1]);
     let y2 = Number(outputs[2]);
     if (p2_attack == 1) {
-      console.log("Player 2 attack's: ", x2, y2);
+      console.log("Player 2 attack's: ","(", x2, ",", y2, ")");
       const txn4 = await Mina.transaction(senderAccount, () => {
         zkAppInstance.p2_attack_p1(Field(x2), Field(y2));
       });
       await txn4.prove();
       await txn4.sign([senderKey]).send();
     }
-  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 2) {
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 5) {
     const coords = P2_submerge_policy(P2x, P2y);
     const p2_submerge = coords[0];
     const step1 = coords[1];
@@ -289,12 +293,11 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
 
 
 //Saving leaderboard
-console.log(leaderboardMap.get(username));
-if (leaderboardMap.get(username) > timestep) {
+if (!leaderboardMap.has(username) || (leaderboardMap.has(username) && leaderboardMap.get(username) > timestep)) {
   leaderboardMap.set(username, timestep);
 }
+
 let mapString = JSON.stringify([...leaderboardMap]);
-console.log(mapString);
 writeFileSync("leaderboard.txt", mapString, (err) => {
   if (err) {
     console.log('Error saving leaderboard!');
@@ -302,16 +305,28 @@ writeFileSync("leaderboard.txt", mapString, (err) => {
     console.log('Leaderboard has been saved!');
   }
 });
+const finalp1health = Math.floor(zkAppInstance.P1P2health.get() / two16);
+
+if (finalp1health > 0 && finalp1health <= health) {
+  console.log('Player 1 wins!');
+} else {
+  console.log('Player 2 wins!');
+}
+
 console.log('Game over!');
 await shutdown();
 
 
 //-----Player 2 policies which can be changed by another user-----------
+
+//Can be changed to make policy more complex
 function P2_init_policy(size) {
   const P2x = Math.floor(Math.random() * size);
   const P2y = Math.floor(Math.random() * size);
   return [P2x, P2y];
 }
+
+//Can be changed to make policy more complex
 function P2_move_policy(P2x, P2y, size) {
   let tempx = P2x;
   let tempy = P2y;
@@ -328,11 +343,15 @@ function P2_move_policy(P2x, P2y, size) {
   }
   return P2direction;
 }
+
+//Currently P2x, P2y, step not used, but can be used to make policy more complex
 function P2_action_policy(P2x, P2y, step) {
   const attack_x = Math.floor(Math.random() * size);
   const attack_y = Math.floor(Math.random() * size);
   return [Math.round(Math.random()), attack_x, attack_y];
 }
+
+//Currently P2x and P2y not used, but can be used to make policy more complex
 function P2_submerge_policy(P2x, P2y) {
   const step1 = Math.floor(Math.random() * 4 + 1);
   const step2 = Math.floor(Math.random() * 4 + 1);
