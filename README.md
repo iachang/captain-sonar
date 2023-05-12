@@ -51,8 +51,10 @@ Shoot the Player 2 submarine down in the minimum amount of steps.
 11. If the other player has honed in on your position, then every at least 10 steps you can use the submerge ability where you will type in one integer for step 1 (N=1, E=2, S=3, W=4) and one integer for step 2. The other player will not see the directions you took, so this confuse the other player.
 12. The game is over when either player has 0 health.
 
-## Tips
-For quicker games start with a 3x3 board and practice visualizing the paths Player 2 is taking!
+## Important Tips
+1. For quicker games start with a 3x3 board and practice visualizing the paths Player 2 is taking!
+2. If Player 1 breaks any rules of the game (e.g. moving off of the board) then the game will have an Assertion Error and you will have to Cntrl+C and restart the game.
+
 
 
 
