@@ -54,7 +54,7 @@ Shoot the Player 2 submarine down in the minimum amount of steps.
 
 ## Important Tips
 1. For quicker games start with a 3x3 board and practice visualizing the paths Player 2 is taking!
-2. If Player 1 breaks any rules of the game (e.g. moving off of the board) then the game will have an Assertion Error and you will have to Cntrl+C and restart the game.
+2. If Player 1 breaks any rules of the game (e.g. moving off of the board, starting the submarine off of the board) then the game will have an Assertion Error and you will have to Cntrl+C and restart the game.
 
 
 
