@@ -210,8 +210,8 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
     let p2_attack = outputs[0];
     let x2 = Number(outputs[1]);
     let y2 = Number(outputs[2]);
-    console.log("p2_attack: ", p2_attack, x2, y2)
     if (p2_attack == 1) {
+      console.log("Player 2 attack's: ", x2, y2);
       const txn4 = await Mina.transaction(senderAccount, () => {
         zkAppInstance.p2_attack_p1(Field(x2), Field(y2));
       });
