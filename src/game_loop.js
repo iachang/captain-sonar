@@ -44,11 +44,17 @@ let health = prompt('How much is health points does each player start with: ');
 health = Number(health);
 
 //initialize the game, Mina protocol
-
-let P1x = prompt('What is your initial x coordinate: ');
-P1x = Number(P1x);
-let P1y = prompt('What is your initial y coordinate: ');
-P1y = Number(P1y);
+let P1x;
+let P1y;
+while (true) {
+  P1x = prompt('What is your initial x coordinate: ');
+  P1x = Number(P1x);
+  P1y = prompt('What is your initial y coordinate: ');
+  P1y = Number(P1y);
+  if (P1x >= 0 && P1x < size && P1y >= 0 && P1y < size) {
+    break;
+  }
+}
 
 console.log("Intializing game...")
 
@@ -83,6 +89,12 @@ const deployTxn = await Mina.transaction(deployerAccount, () => {
 });
 await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
+
+const valid_sub3 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.check_valid_pos(Field(P2x), Field(P2y));
+});
+await valid_sub3.prove();
+await valid_sub3.sign([senderKey]).send();
 
 
 function draw_current_board(curr_x, curr_y, size) {
@@ -139,7 +151,7 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
   });
   await p1_attack_check.prove();
   await p1_attack_check.sign([senderKey]).send();
-  console.log("Done checking if player 1 was attacked");
+  // console.log("Done checking if player 1 was attacked");
 
   let new_P1_salt = Field.random();
 
@@ -203,7 +215,7 @@ while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkA
   });
   await p2_attack_check.prove();
   await p2_attack_check.sign([senderKey]).send();
-  console.log("Done checking if player 2 was attacked");
+  // console.log("Done checking if player 2 was attacked");
   let new_P2_salt = Field.random();
   if (timestep % 2 == 0 && timestep != 0) { 
     const outputs = P2_action_policy(P2x, P2y, timestep);

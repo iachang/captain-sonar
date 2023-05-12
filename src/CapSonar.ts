@@ -10,38 +10,14 @@ import {
 } from 'snarkyjs';
 
 export class CapSonar extends SmartContract {
-  // @state(Field) P1x = State<Field>(); // Hidden
-  // @state(Field) P1y = State<Field>(); // Hidden
   @state(Field) P1_pos = State<Field>(); // Hidden
-
-  // @state(Field) P2x = State<Field>(); // Hidden
-  // @state(Field) P2y = State<Field>(); // Hidden
   @state(Field) P2_pos = State<Field>(); // Hidden
-
-  // @state(Field) step = State<Field>(); // Not Hidden
-  // @state(Field) size = State<Field>(); // Not Hidden
   @state(Field) step_size = State<Field>(); // Not Hidden
-
-  // ISSUE: we can have at most 8 field elements!!!
-  // @state(Field) P1health = State<Field>(); // Not Hidden
-  // @state(Field) P2health = State<Field>(); // Not Hidden
   @state(Field) P1P2health = State<Field>(); // Not Hidden
-
-  // @state(Field) P1attackedatX = State<Field>(); // Not Hidden
-  // @state(Field) P1attackedatY = State<Field>(); // Not Hidden
   @state(Field) P1attackedatXY = State<Field>(); // Not Hidden
-
-  // @state(Field) P2attackedatX = State<Field>(); // Not Hidden
-  // @state(Field) P2attackedatY = State<Field>(); // Not Hidden
   @state(Field) P2attackedatXY = State<Field>(); // Not Hidden
-
-  // @state(Field) P1attacked = State<Field>(); // Not Hidden
-  // @state(Field) P2attacked = State<Field>(); // Not Hidden
   @state(Field) P1P2attacked = State<Field>(); // Not Hidden
-
-  // @state(Field) P1_submerge_step = State<Field>(); // Not Hidden
-  // @state(Field) P2_submerge_step = State<Field>(); // Not Hidden
-  @state(Field) P1P2_submerge_step = State<Field>();
+  @state(Field) P1P2_submerge_step = State<Field>(); // Not Hidden
 
   init() {
     super.init();
@@ -52,13 +28,11 @@ export class CapSonar extends SmartContract {
   }
 
   @method p2_init_position(salt: Field, x: Field, y: Field) {
-    // this.check_valid_pos(x, y);
     const combined_input = this.indiv_to_comb(x, y);
     this.P2_pos.set(Poseidon.hash([salt, combined_input]));
   }
 
   @method p1_init_position(salt: Field, x: Field, y: Field) {
-    // this.check_valid_pos(x, y);
     const combined_input = this.indiv_to_comb(x, y);
     this.P1_pos.set(Poseidon.hash([salt, combined_input]));
   }
