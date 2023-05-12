@@ -179,13 +179,11 @@ const numt6b = indiv_to_comb(Field(0), Field(0));
 numt6b.assertEquals(atk1a);
 Field(1).assertEquals(atk1b);
 
-// console.log('P2 attacked at: %d, P2 is attacked? %d', atk1a, atk1b);
-
 // // ----------------------------------------------------
 const p1health_before = zkAppInstance.P1P2health.get();
 
 const txn7 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt4);
+  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt_p2);
 });
 
 await txn7.prove();
@@ -282,4 +280,4 @@ Field(0).assertEquals(comb_to_indiv(atk6a, 1));
 
 console.log('Shutting down');
 
-// await shutdown();
+await shutdown();
