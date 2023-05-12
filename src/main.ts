@@ -25,8 +25,8 @@ const { privateKey: deployerKey, publicKey: deployerAccount } =
 const { privateKey: senderKey, publicKey: senderAccount } =
   Local.testAccounts[1];
 
-let salt = Field.random();
-
+let salt_p1 = Field.random();
+let salt_p2 = Field.random();
 function comb_to_indiv(comb: Field, index: number) {
   const combInt = UInt32.from(comb);
   const modnum = UInt32.from(65536);
@@ -65,13 +65,13 @@ await txn0a.prove();
 await txn0a.sign([senderKey]).send();
 
 const txn0b = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p1_init_position(salt, Field(0), Field(0));
+  zkAppInstance.p1_init_position(salt_p1, Field(0), Field(0));
 });
 await txn0b.prove();
 await txn0b.sign([senderKey]).send();
 
 const txn0c = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p2_init_position(salt, Field(0), Field(0));
+  zkAppInstance.p2_init_position(salt_p2, Field(0), Field(0));
 });
 await txn0c.prove();
 await txn0c.sign([senderKey]).send();
@@ -86,68 +86,69 @@ await txn0d.sign([senderKey]).send();
 const num0 = zkAppInstance.P1_pos.get();
 console.log('(x, y) after init:', num0.toString());
 
-// const numt0 = indiv_to_comb(Field(0), Field(0));
-// Poseidon.hash([salt, numt0]).assertEquals(num0);
+const numt0 = indiv_to_comb(Field(0), Field(0));
+Poseidon.hash([salt_p1, numt0]).assertEquals(num0);
 
-// // ----------------------------------------------------
-// const txn1 = await Mina.transaction(senderAccount, () => {
-//   zkAppInstance.update_p1_pos(Field(1), Field(0), Field(0), salt);
-// });
+// ----------------------------------------------------
+let salt1 = Field.random();
+const txn1 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.update_p1_pos(Field(1), Field(0), Field(0), salt_p1, salt1);
+});
 
-// await txn1.prove();
-// await txn1.sign([senderKey]).send();
+await txn1.prove();
+await txn1.sign([senderKey]).send();
 
-// const num1 = zkAppInstance.P1_pos.get();
-// console.log('(x, y) after init:', num1.toString());
+const num1 = zkAppInstance.P1_pos.get();
+console.log('(x, y) after init:', num1.toString());
 
-// const numt1 = indiv_to_comb(Field(0), Field(1));
-// Poseidon.hash([salt, numt1]).assertEquals(num1);
+const numt1 = indiv_to_comb(Field(0), Field(1));
+Poseidon.hash([salt1, numt1]).assertEquals(num1);
 
-// // ----------------------------------------------------
+// ----------------------------------------------------
+let salt2 = Field.random();
+const txn2 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.update_p1_pos(Field(2), Field(0), Field(1), salt1, salt2);
+});
 
-// const txn2 = await Mina.transaction(senderAccount, () => {
-//   zkAppInstance.update_p1_pos(Field(2), Field(0), Field(1), salt);
-// });
+await txn2.prove();
+await txn2.sign([senderKey]).send();
 
-// await txn2.prove();
-// await txn2.sign([senderKey]).send();
+const num2 = zkAppInstance.P1_pos.get();
+console.log('(x, y) after init:', num2.toString());
 
-// const num2 = zkAppInstance.P1_pos.get();
-// console.log('(x, y) after init:', num2.toString());
+const numt2 = indiv_to_comb(Field(1), Field(1));
+Poseidon.hash([salt2, numt2]).assertEquals(num2);
 
-// const numt2 = indiv_to_comb(Field(1), Field(1));
-// Poseidon.hash([salt, numt2]).assertEquals(num2);
+// ----------------------------------------------------
+let salt3 = Field.random();
+const txn3 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.update_p1_pos(Field(3), Field(1), Field(1), salt2, salt3);
+});
 
-// // ----------------------------------------------------
+await txn3.prove();
+await txn3.sign([senderKey]).send();
 
-// const txn3 = await Mina.transaction(senderAccount, () => {
-//   zkAppInstance.update_p1_pos(Field(3), Field(1), Field(1), salt);
-// });
+const num3 = zkAppInstance.P1_pos.get();
+console.log('(x, y) after init:', num3.toString());
 
-// await txn3.prove();
-// await txn3.sign([senderKey]).send();
+const numt3 = indiv_to_comb(Field(1), Field(0));
+Poseidon.hash([salt3, numt3]).assertEquals(num3);
 
-// const num3 = zkAppInstance.P1_pos.get();
-// console.log('(x, y) after init:', num3.toString());
+// ----------------------------------------------------
+let salt4 = Field.random();
+const txn4 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.update_p1_pos(Field(4), Field(1), Field(0), salt3, salt4);
+});
 
-// const numt3 = indiv_to_comb(Field(1), Field(0));
-// Poseidon.hash([salt, numt3]).assertEquals(num3);
+await txn4.prove();
+await txn4.sign([senderKey]).send();
 
-// // ----------------------------------------------------
+const num4 = zkAppInstance.P1_pos.get();
+console.log('(x, y) after init:', num4.toString());
 
-// const txn4 = await Mina.transaction(senderAccount, () => {
-//   zkAppInstance.update_p1_pos(Field(4), Field(1), Field(0), salt);
-// });
-
-// await txn4.prove();
-// await txn4.sign([senderKey]).send();
-
-// const num4 = zkAppInstance.P1_pos.get();
-// console.log('(x, y) after init:', num4.toString());
-
-// const numt4 = indiv_to_comb(Field(0), Field(0));
-// Poseidon.hash([salt, numt4]).assertEquals(num4);
-// // ----------------------------------------------------
+const numt4 = indiv_to_comb(Field(0), Field(0));
+Poseidon.hash([salt4, numt4]).assertEquals(num4);
+// ----------------------------------------------------
 
 const txn5 = await Mina.transaction(senderAccount, () => {
   zkAppInstance.check_valid_pos(Field(0), Field(0));
@@ -178,14 +179,11 @@ const numt6b = indiv_to_comb(Field(0), Field(0));
 numt6b.assertEquals(atk1a);
 Field(1).assertEquals(atk1b);
 
-// console.log('P2 attacked at: %d, P2 is attacked? %d', atk1a, atk1b);
-
 // // ----------------------------------------------------
-
 const p1health_before = zkAppInstance.P1P2health.get();
 
 const txn7 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt);
+  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt_p2);
 });
 
 await txn7.prove();
@@ -248,7 +246,7 @@ console.log('P2 attacked at: %d, P2 is attacked? %d', atk3a, atk3b);
 const p1health_before_2 = zkAppInstance.P1P2health.get();
 
 const txn10 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt);
+  zkAppInstance.p2_check_if_attacked(Field(0), Field(0), salt_p2);
 });
 
 await txn10.prove();
@@ -265,7 +263,7 @@ Field(0).assertEquals(comb_to_indiv(atk5a, 1));
 // ----------------------------------------------------
 
 const txn11 = await Mina.transaction(senderAccount, () => {
-  zkAppInstance.p1_check_if_attacked(Field(0), Field(0), salt);
+  zkAppInstance.p1_check_if_attacked(Field(0), Field(0), salt4);
 });
 
 await txn11.prove();
@@ -282,4 +280,4 @@ Field(0).assertEquals(comb_to_indiv(atk6a, 1));
 
 console.log('Shutting down');
 
-// await shutdown();
+await shutdown();
