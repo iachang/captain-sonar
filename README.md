@@ -41,7 +41,7 @@ Shoot the Player 2 submarine down in the minimum amount of steps.
 1. Select a username: "Type in a username to save your score:"
 2. Indicate the size of the board for the game: "What is the size of the board:"
 3. How many health points should each player start out with: "How much is health points does each player start with:"
-4. Determine starting location of submarine: "What is your initial x coordinate:" and "What is your initial y coordinate:"
+4. Determine starting location of submarine: "What is your initial x coordinate:" and "What is your initial y coordinate:". This will repeadtly loop until a valid 0 indexed X and Y are given for Player 1 according to the board size
 5. A leaderboard will show the usernames with the min steps to beat the Player 2 policy
 6. An initial board will show up with the initial position of your submarine. The bottom left is (0, 0) and the board is 0 indexed. The "O" represent cells with empty water and the "X" represent the position of the submarine. The players' initial health is shown below the board.
 7. At each timestep, we type in an integer for one of the cardinal directions for the following question: "Which direction do you want to travel (N=1, E=2, S=3, W=4):"
