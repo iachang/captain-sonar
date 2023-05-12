@@ -5,11 +5,9 @@ import {
   Field,
   Mina,
   PrivateKey,
-  Poseidon,
-  Character,
-  AccountUpdate,
-  fetchAccount
+  AccountUpdate
 } from 'snarkyjs';
+import { readFileSync, writeFileSync } from 'fs';
 
 await isReady;
 
@@ -37,6 +35,8 @@ const prompt = promptSync({sigint: true});
 let P1_salt = Field.random();
 let P2_salt = Field.random();
 
+let username = prompt('Type in a username to save your score: ');
+
 let size = prompt('What is the size of the board: ');
 size = Number(size);
 
@@ -50,12 +50,28 @@ P1x = Number(P1x);
 let P1y = prompt('What is your initial y coordinate: ');
 P1y = Number(P1y);
 
+console.log("Intializing game...")
+
+//Displaying the Leaderboard
+console.log(' ');
+console.log('Leaderboard:');
+let leaderboardMap = new Map();
+try {
+  const mapString = readFileSync('leaderboard.txt', 'utf8');
+  const parsedMap = JSON.parse(mapString);
+  const myMap = new Map(parsedMap);
+  const sortedArray = [...myMap].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  for (const [key, value] of sortedArray) {
+    console.log(`Username: ${key}, Timestep: ${value}`);
+  }
+} catch (err) {
+  leaderboardMap.set(username, 1000);
+  console.log("No existing leaderboard...");
+}
+
 const coords = P2_init_policy(size);
 let P2x = Number(coords[0]);
 let P2y = Number(coords[1]);
-
-let P1health = health;
-let P2health = health;
 
 const two16 = 65536;
 const deployTxn = await Mina.transaction(deployerAccount, () => {
@@ -69,16 +85,13 @@ await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
 
 
-
-// write a function that draws a board in the terminal and display an X to depict the player's location
-// the board is a 2D array of size x size
 function draw_current_board(curr_x, curr_y, size) {
   let board = [];
   //print the board to the console with the player's location making it visually appealing
-  for (let i = 0; i < size; i++) {
+  for (let i = size-1; i >= 0; i--) {
     let row = '';
     for (let j = 0; j < size; j++) {
-      if (i == size-curr_y && j == curr_x) {
+      if (i == curr_y && j == curr_x) {
         row += 'X';
       } else {
         row += 'O';
@@ -107,13 +120,16 @@ const txn = await Mina.transaction(senderAccount, () => {
 });
 await txn.prove();
 await txn.sign([senderKey]).send();
-
+console.log("");
 console.log("Initial board:")
 draw_current_board(P1x, P1y, size);
-console.log("Player 1's health: " + Math.floor(zkAppInstance.P1P2health.get() / two16));
-console.log("Player 2's health: " + zkAppInstance.P1P2health.get() % two16);
+const p1health = Math.floor(zkAppInstance.P1P2health.get() / two16);
+const p2health = zkAppInstance.P1P2health.get() % two16;
+console.log("Player 1's health: ", p1health > health ? 0 : p1health);
+console.log("Player 2's health: ", p2health > health ? 0 : p2health);
 let timestep = 0;
-while (P1health > 0 && P2health > 0) {
+while ((Math.floor(zkAppInstance.P1P2health.get() / two16) > 0 && Math.floor(zkAppInstance.P1P2health.get() / two16) <= health) && 
+  (zkAppInstance.P1P2health.get() % two16 > 0 && zkAppInstance.P1P2health.get() % two16 <= health)) {
   console.log(' ');
   console.log('Timestep: ' + timestep);
 
@@ -124,7 +140,10 @@ while (P1health > 0 && P2health > 0) {
   await p1_attack_check.prove();
   await p1_attack_check.sign([senderKey]).send();
   console.log("Done checking if player 1 was attacked");
-  if (timestep % 2 == 0) { //&& timestep != 0
+
+  let new_P1_salt = Field.random();
+
+  if (timestep % 2 == 0 && timestep != 0) {
     let p1_attack = prompt('Do you want to attack (Y/N): ');
     if (p1_attack == 'Y') {
       let x = prompt('What is the x coordinate of the attack: ');
@@ -137,22 +156,44 @@ while (P1health > 0 && P2health > 0) {
       await txn3.prove();
       await txn3.sign([senderKey]).send();
     }
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 2) {
+    let p1_submerge = prompt('Do you want to submerge (Y/N): ');
+    if (p1_submerge == 'Y') {
+      let step1 = prompt('What is the first direction in the submerge: ');
+      step1 = Number(step1);
+      let step2 = prompt('What is the second direction in the submerge: ');
+      step2 = Number(step2);
+      const sub = await Mina.transaction(senderAccount, () => {
+        zkAppInstance.p1_submerge(Field(P1x), Field(P1y), Field(step1), Field(step2), P1_salt);
+      });
+      await sub.prove();
+      await sub.sign([senderKey]).send();
+      if (zkAppInstance.P1P2_submerge_step.get() / two16 == timestep) {
+        const coords_sub = player_move(step1, P1x, P1y);
+        P1x = coords_sub[0];
+        P1y = coords_sub[1];
+        const coords_sub2 = player_move(step2, P1x, P1y);
+        P1x = coords_sub2[0];
+        P1y = coords_sub2[1];
+        const valid_sub = await Mina.transaction(senderAccount, () => {
+          zkAppInstance.check_valid_pos(Field(P1x), Field(P1y));
+        });
+        await valid_sub.prove();
+        await valid_sub.sign([senderKey]).send();
+      }
+    }
   }
   let P1direction = prompt('Which direction do you want to travel (N=1, E=2, S=3, W=4): ');
   P1direction = Number(P1direction);
   const txn1 = await Mina.transaction(senderAccount, () => {
-    zkAppInstance.update_p1_pos(Field(P1direction), Field(P1x), Field(P1y), P1_salt);
+    zkAppInstance.update_p1_pos(Field(P1direction), Field(P1x), Field(P1y), P1_salt, new_P1_salt);
   });
   await txn1.prove();
   await txn1.sign([senderKey]).send();
   const coords1 = player_move(P1direction, P1x, P1y);
   P1x = coords1[0];
   P1y = coords1[1];
-  // console.log("total health:", zkAppInstance.P1P2health.get(),
-  //  " p1 p2 attack:", zkAppInstance.P1P2attacked.get(), 
-  //  " p2 attacked at pos:", zkAppInstance.P2attackedatXY.get(),
-  //  " p2 pos:", zkAppInstance.P2_pos.get()
-  // );
+  P1_salt = new_P1_salt;
   //-----Player 1 End turn-------------------------------------------
 
 
@@ -162,7 +203,9 @@ while (P1health > 0 && P2health > 0) {
   });
   await p2_attack_check.prove();
   await p2_attack_check.sign([senderKey]).send();
-  if (timestep % 2 == 0) { //&& timestep != 0
+  console.log("Done checking if player 2 was attacked");
+  let new_P2_salt = Field.random();
+  if (timestep % 2 == 0 && timestep != 0) { 
     const outputs = P2_action_policy(P2x, P2y, timestep);
     let p2_attack = outputs[0];
     let x2 = Number(outputs[1]);
@@ -175,12 +218,37 @@ while (P1health > 0 && P2health > 0) {
       await txn4.prove();
       await txn4.sign([senderKey]).send();
     }
+  } else if ((timestep - (zkAppInstance.P1P2_submerge_step.get() / two16)) > 2) {
+    const coords = P2_submerge_policy(P2x, P2y);
+    const p2_submerge = coords[0];
+    const step1 = coords[1];
+    const step2 = coords[2];
+    if (p2_submerge == 'Y') {
+      const sub = await Mina.transaction(senderAccount, () => {
+        zkAppInstance.p2_submerge(Field(P2x), Field(P2y), Field(step1), Field(step2), P2_salt);
+      });
+      await sub.prove();
+      await sub.sign([senderKey]).send();
+      if (zkAppInstance.P1P2_submerge_step.get() / two16 == timestep) {
+        const coords_sub = player_move(step1, P2x, P2y);
+        P2x = coords_sub[0];
+        P2y = coords_sub[1];
+        const coords_sub2 = player_move(step2, P2x, P2y);
+        P2x = coords_sub2[0];
+        P2y = coords_sub2[1];
+        const valid_sub = await Mina.transaction(senderAccount, () => {
+          zkAppInstance.check_valid_pos(Field(P2x), Field(P2y));
+        });
+        await valid_sub.prove();
+        await valid_sub.sign([senderKey]).send();
+        console.log("Player 2 submerged!");
+      }
+    }
   }
-  let P2direction = P2_move_policy(P2x, P2y);
+  let P2direction = P2_move_policy(P2x, P2y, size);
   P2direction = Number(P2direction);
-
   const txn2 = await Mina.transaction(senderAccount, () => {
-    zkAppInstance.update_p2_pos(Field(P2direction), Field(P2x), Field(P2y), P2_salt);
+    zkAppInstance.update_p2_pos(Field(P2direction), Field(P2x), Field(P2y), P2_salt, new_P2_salt);
   });
   await txn2.prove();
   await txn2.sign([senderKey]).send();
@@ -188,37 +256,74 @@ while (P1health > 0 && P2health > 0) {
   P2x = coords2[0];
   P2y = coords2[1];
   console.log('Player 2 moved ' + P2direction);
-  console.log('Player 2 position: ' + P2x + ', ' + P2y);
+  // console.log('Player 2 position: ' + P2x + ', ' + P2y);
+  P2_salt = new_P2_salt;
   //-----Player 2 End turn-------------------------------------------
 
+
+  //-----End of Turn Functions---------------------------------------
+  const step_txn = await Mina.transaction(senderAccount, () => {
+    zkAppInstance.increment_step();
+  });
+  await step_txn.prove();
+  await step_txn.sign([senderKey]).send();
   draw_current_board(P1x, P1y, size);
-  console.log("Player 1's health: " + Math.floor(zkAppInstance.P1P2health.get() / two16));
-  console.log("Player 2's health: " + zkAppInstance.P1P2health.get() % two16);
+  const p1health = Math.floor(zkAppInstance.P1P2health.get() / two16);
+  const p2health = zkAppInstance.P1P2health.get() % two16;
+  console.log("Player 1's health: ", p1health > health ? 0 : p1health);
+  console.log("Player 2's health: ", p2health > health ? 0 : p2health);
   timestep += 1;
 }
 
-console.log('Shutting down');
 
+//Saving leaderboard
+console.log(leaderboardMap.get(username));
+if (leaderboardMap.get(username) > timestep) {
+  leaderboardMap.set(username, timestep);
+}
+let mapString = JSON.stringify([...leaderboardMap]);
+console.log(mapString);
+writeFileSync("leaderboard.txt", mapString, (err) => {
+  if (err) {
+    console.log('Error saving leaderboard!');
+  } else {
+    console.log('Leaderboard has been saved!');
+  }
+});
+console.log('Game over!');
 await shutdown();
 
 
-
-
-
-
-//Player 2 policies which can be changed by another user
+//-----Player 2 policies which can be changed by another user-----------
 function P2_init_policy(size) {
   const P2x = Math.floor(Math.random() * size);
   const P2y = Math.floor(Math.random() * size);
   return [P2x, P2y];
 }
-function P2_move_policy(P2x, P2y, step) {
-  let P2direction = Math.floor(Math.random() * 4 + 1);
+function P2_move_policy(P2x, P2y, size) {
+  let tempx = P2x;
+  let tempy = P2y;
+  let P2direction;
+  let valid = true;
+  while (valid) {
+    P2direction = Math.floor(Math.random() * 4 + 1);
+    const coords_sub = player_move(P2direction, tempx, tempy);
+    tempx = coords_sub[0];
+    tempy = coords_sub[1];
+    if (tempx < size && tempx >= 0 && tempy < size && tempy >= 0) {
+      valid = false;
+    }
+  }
   return P2direction;
 }
 function P2_action_policy(P2x, P2y, step) {
   const attack_x = Math.floor(Math.random() * size);
   const attack_y = Math.floor(Math.random() * size);
   return [Math.round(Math.random()), attack_x, attack_y];
+}
+function P2_submerge_policy(P2x, P2y) {
+  const step1 = Math.floor(Math.random() * 4 + 1);
+  const step2 = Math.floor(Math.random() * 4 + 1);
+  return [Math.round(Math.random()), step1, step2];
 }
 
