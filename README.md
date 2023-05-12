@@ -27,6 +27,14 @@ Run the following command to install sync prompting for the game:
 ```
 npm install sync-prompt
 ```
+First build the game with
+```
+npm run build && 
+```
+Then play the game by running game_loop.js
+ ```
+ node build/src/game_loop.js
+ ```
 
 # Instructions for the Game:
 ## Overview
