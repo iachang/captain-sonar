@@ -29,7 +29,7 @@ npm install sync-prompt
 ```
 First build the game with
 ```
-npm run build && 
+npm run build
 ```
 Then play the game by running game_loop.js
  ```
