@@ -26,7 +26,7 @@ git reset --hard origin/main
 ```sh
 npm run build
 ```
-## Additional Install
+## Run the main game loop
 First build the game with
 ```
 npm run build
@@ -36,6 +36,16 @@ Then play the game by running game_loop.js
  node build/src/game_loop.js
  ```
 
+## Run the unit tests
+First build the game with
+```
+npm run build
+```
+Then run the unit tests
+ ```
+ node build/src/main.js
+ ```
+ 
 # Instructions for the Game:
 ## Overview
 This game is like moving battleships. Player 1 uses the terminal to move their submarine N, E, S, W at each step. Every 2 steps they can attack the enemy submarine. The Player 2 submarine is indicating which of the cardinal directions it has taken at each step but does not indicate its starting position. At every step of the game Player 1 moves their own submarine and tries to determine where the Player 2 submarine is using the Player 2 directions as clues. Here the Player 2 is a CPU with a hardcoded policy. People can very easily modify the game loop to create other Player 2 policies to beat their friends. 
