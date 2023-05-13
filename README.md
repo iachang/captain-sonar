@@ -15,7 +15,7 @@ When it asks, "Create an accompanying UI project too?" Select "none"
 ```sh
 cd captain-sonar
 npm install -g zkapp-cli
-npm install -g sync-prompt
+npm install -g prompt-sync
 git remote add origin https://github.com/iachang/captain-sonar.git
 git pull
 git reset --hard origin/main
