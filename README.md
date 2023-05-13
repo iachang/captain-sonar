@@ -26,26 +26,7 @@ git reset --hard origin/main
 ```sh
 npm run build
 ```
-
-## How to run tests
-
-```sh
-npm run test
-npm run testw # watch mode
-```
-
-## How to run coverage
-
-```sh
-npm run coverage
-```
-
-
 ## Additional Install
-Run the following command to install sync prompting for the game:
-```
-npm install prompt-sync
-```
 First build the game with
 ```
 npm run build
