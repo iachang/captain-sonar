@@ -15,7 +15,7 @@ When it asks, "Create an accompanying UI project too?" Select "none"
 ```sh
 cd captain-sonar
 npm install -g zkapp-cli
-npm install -g prompt-sync
+npm install prompt-sync
 git remote add origin https://github.com/iachang/captain-sonar.git
 git pull
 git reset --hard origin/main
@@ -44,7 +44,7 @@ npm run coverage
 ## Additional Install
 Run the following command to install sync prompting for the game:
 ```
-npm install sync-prompt
+npm install prompt-sync
 ```
 First build the game with
 ```
