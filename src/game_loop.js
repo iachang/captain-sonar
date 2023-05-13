@@ -82,12 +82,22 @@ const two16 = 65536;
 const deployTxn = await Mina.transaction(deployerAccount, () => {
   AccountUpdate.fundNewAccount(deployerAccount);
   zkAppInstance.deploy();
-  zkAppInstance.p1_init_position(P1_salt, Field(P1x), Field(P1y));
-  zkAppInstance.p2_init_position(P2_salt, Field(P2x), Field(P2y));
   zkAppInstance.init_board(size);
 });
 await deployTxn.prove();
 await deployTxn.sign([deployerKey, zkAppPrivateKey]).send();
+
+const trans123 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.p1_init_position(P1_salt, Field(P1x), Field(P1y));
+});
+await trans123.prove();
+await trans123.sign([senderKey]).send();
+
+const trans1234 = await Mina.transaction(senderAccount, () => {
+  zkAppInstance.p2_init_position(P2_salt, Field(P2x), Field(P2y));
+});
+await trans1234.prove();
+await trans1234.sign([senderKey]).send();
 
 const valid_sub3 = await Mina.transaction(senderAccount, () => {
   zkAppInstance.check_valid_pos(Field(P2x), Field(P2y));
