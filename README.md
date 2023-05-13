@@ -2,6 +2,25 @@
 
 This template uses TypeScript.
 
+## Prerequisites
+NodeJS v16 and later (or NodeJS v14 using --experimental-wasm-threads)
+NPM v6 and later
+Git v2 and later
+
+```sh
+zk project captain-sonar
+```
+When it asks, "Create an accompanying UI project too?" Select "none"
+
+```sh
+cd captain-sonar
+npm install -g zkapp-cli
+npm install -g sync-prompt
+git remote add origin https://github.com/iachang/captain-sonar.git
+git pull
+git reset --hard origin/main
+```
+
 ## How to build
 
 ```sh
